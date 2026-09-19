@@ -7,7 +7,6 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -30,7 +29,7 @@ public final class NatureActions {
 	private static final double BASE_PLANT_DEATH = 0.018;
 	private static final double BASE_FLOWER_SPREAD = 0.035;
 	private static final double BASE_SAPLING_PLANT = 0.07;
-	private static final double BASE_SAPLING_GROW = 0.08;
+	private static final double BASE_SAPLING_GROW = 0.12;
 	private static final double BASE_SAPLING_DEATH = 0.06;
 	private static final double BASE_TREE_DEATH = 0.012;
 	private static final int SPREAD_RADIUS = 3;
@@ -162,18 +161,16 @@ public final class NatureActions {
 		boolean crowded = nearbySaplings(level, pos) > 2;
 		boolean dark = level.getRawBrightness(pos, 0) < MIN_LIGHT;
 		boolean blocked = !hasGrowSpace(level, pos);
-		boolean canGrow = sapling instanceof BonemealableBlock growable
-				&& growable.isValidBonemealTarget(level, pos, state)
-				&& !crowded && !dark && !blocked;
+		boolean canGrow = !crowded && !dark && !blocked;
 
-		if (!canGrow && chance(random, BASE_SAPLING_DEATH * rates.death() * speed * (crowded || dark || blocked ? 3.0 : 1.0))) {
+		if (!canGrow && chance(random, BASE_SAPLING_DEATH * rates.death() * speed * 3.0)) {
 			level.destroyBlock(pos, false);
 			stats.saplingDeaths++;
 			return;
 		}
 
 		if (canGrow && chance(random, BASE_SAPLING_GROW * rates.growth() * speed)) {
-			((BonemealableBlock) sapling).performBonemeal(level, random, pos, state);
+			sapling.randomTick(state, level, pos, random);
 			if (!(level.getBlockState(pos).getBlock() instanceof SaplingBlock)) {
 				stats.saplingGrowths++;
 			}
