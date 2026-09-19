@@ -31,14 +31,14 @@ public final class NatureActions {
 	private static final double BASE_GRASS_GROW_UP = 0.04;
 	private static final double BASE_PLANT_DEATH = 0.018;
 	private static final double BASE_FLOWER_SPREAD = 0.035;
-	private static final double BASE_SAPLING_PLANT = 0.07;
+	private static final double BASE_SAPLING_PLANT = 0.055;
 	private static final double BASE_SAPLING_GROW = 0.12;
 	private static final double BASE_SAPLING_DEATH = 0.06;
-	private static final double BASE_TREE_DEATH = 0.012;
-	private static final int SPREAD_RADIUS = 3;
+	private static final double BASE_TREE_DEATH = 0.01;
+	private static final int SPREAD_RADIUS = 4;
 	private static final int MIN_LIGHT = 9;
-	private static final int MAX_TREE_LOGS = 80;
-	private static final int MAX_TREE_LEAVES = 160;
+	private static final int MAX_TREE_LOGS = 96;
+	private static final int MAX_TREE_LEAVES = 180;
 
 	private static final Block[] GROUND_COVER = {
 			Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS,
@@ -153,15 +153,18 @@ public final class NatureActions {
 			handleSapling(level, pos, state, sapling, rates, random, speed, stats);
 			return;
 		}
-		if (state.is(BlockTags.LOGS) && chance(random, BASE_TREE_DEATH * rates.death() * speed)) {
-			killTree(level, pos, species, random, config, stats);
-			return;
+		if (state.is(BlockTags.LOGS)) {
+			double deathChance = BASE_TREE_DEATH * rates.death() * speed * ForestEcology.deathMultiplier(level, pos);
+			if (chance(random, deathChance)) {
+				killTree(level, pos, species, random, config, stats);
+				return;
+			}
 		}
 		handleSaplingPlant(level, pos, species, rates, random, speed, stats);
 	}
 
 	private static void handleSapling(ServerLevel level, BlockPos pos, BlockState state, SaplingBlock sapling, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
-		boolean crowded = nearbySaplings(level, pos) > 2;
+		boolean crowded = nearbySaplings(level, pos) > 3 || ForestEcology.isInterior(level, pos);
 		boolean dark = level.getRawBrightness(pos, 0) < MIN_LIGHT;
 		boolean blocked = !hasGrowSpace(level, pos);
 		boolean canGrow = !crowded && !dark && !blocked;
@@ -185,7 +188,7 @@ public final class NatureActions {
 	}
 
 	private static boolean hasGrowSpace(ServerLevel level, BlockPos pos) {
-		for (int dy = 1; dy <= 4; dy++) {
+		for (int dy = 1; dy <= 5; dy++) {
 			BlockState above = level.getBlockState(pos.above(dy));
 			if (!above.isAir() && !above.is(BlockTags.LEAVES) && !isReplaceableFoliage(above.getBlock())) {
 				return false;
@@ -208,15 +211,7 @@ public final class NatureActions {
 				lowest = log;
 			}
 		}
-
-		boolean fell = config.fallenLogsEnabled && random.nextFloat() < 0.18f && logs.size() <= 24;
-		BlockState fallen = null;
-		if (fell) {
-			BlockState sample = level.getBlockState(lowest);
-			if (sample.hasProperty(BlockStateProperties.AXIS)) {
-				fallen = sample.setValue(BlockStateProperties.AXIS, random.nextBoolean() ? Direction.Axis.X : Direction.Axis.Z);
-			}
-		}
+		BlockState sample = level.getBlockState(lowest);
 
 		for (BlockPos leaf : leaves) {
 			level.destroyBlock(leaf, false);
@@ -224,11 +219,16 @@ public final class NatureActions {
 		for (BlockPos log : logs) {
 			level.destroyBlock(log, false);
 		}
-		if (fallen != null) {
-			BlockPos ground = findSoil(level, lowest);
-			BlockPos place = ground != null ? ground.above() : lowest;
-			if (level.isEmptyBlock(place) || isReplaceableFoliage(level.getBlockState(place).getBlock())) {
-				level.setBlock(place, fallen, Block.UPDATE_ALL);
+
+		if (config.fallenLogsEnabled) {
+			ForestEcology.placeFallenLog(level, lowest, logs, sample, random);
+		}
+
+		if (species.plant() != null && species.plant() != Blocks.AIR && random.nextFloat() < 0.35f) {
+			BlockPos edge = ForestEcology.edgePlantSpot(level, lowest, random);
+			if (edge != null) {
+				level.setBlock(edge, species.plant().defaultBlockState(), Block.UPDATE_ALL);
+				stats.saplingsPlanted++;
 			}
 		}
 		stats.treeDeaths++;
@@ -256,7 +256,7 @@ public final class NatureActions {
 			}
 			for (Direction direction : Direction.values()) {
 				BlockPos next = current.relative(direction);
-				if (seen.add(next) && current.distManhattan(origin) < 14) {
+				if (seen.add(next) && current.distManhattan(origin) < 16) {
 					queue.add(next);
 				}
 			}
@@ -272,8 +272,8 @@ public final class NatureActions {
 			return;
 		}
 		BlockPos probe = offset(origin, random, SPREAD_RADIUS);
-		BlockPos ground = findSoil(level, probe);
-		if (ground == null || isProtectedSurface(level.getBlockState(ground))) {
+		BlockPos ground = ForestEcology.walkToSoil(level, probe);
+		if (ground == null || ForestEcology.isProtected(level.getBlockState(ground))) {
 			return;
 		}
 		BlockPos air = ground.above();
@@ -283,30 +283,26 @@ public final class NatureActions {
 		if (level.getRawBrightness(air, 0) < MIN_LIGHT) {
 			return;
 		}
+		if (ForestEcology.isInterior(level, air)) {
+			return;
+		}
 		if (nearbySaplings(level, air) > 0) {
 			return;
 		}
 		if (!hasGrowSpace(level, air)) {
 			return;
 		}
-		BlockState sapling = plant.defaultBlockState();
-		if (sapling.getBlock() instanceof DoublePlantBlock) {
+		if (plant.defaultBlockState().getBlock() instanceof DoublePlantBlock) {
 			return;
 		}
-		level.setBlock(air, sapling, Block.UPDATE_ALL);
-		stats.saplingsPlanted++;
-	}
-
-	private static BlockPos findSoil(ServerLevel level, BlockPos start) {
-		BlockPos.MutableBlockPos cursor = start.mutable();
-		for (int i = 0; i < 10; i++) {
-			Block block = level.getBlockState(cursor).getBlock();
-			if (isPlantableSoil(block)) {
-				return cursor.immutable();
+		if (ForestEcology.needsTwoByTwo(species) && random.nextBoolean()) {
+			if (ForestEcology.tryPlaceTwoByTwo(level, air, plant)) {
+				stats.saplingsPlanted += 4;
+				return;
 			}
-			cursor.move(0, -1, 0);
 		}
-		return null;
+		level.setBlock(air, plant.defaultBlockState(), Block.UPDATE_ALL);
+		stats.saplingsPlanted++;
 	}
 
 	private static void placeDouble(ServerLevel level, BlockPos lower, Block block) {
@@ -361,20 +357,15 @@ public final class NatureActions {
 	}
 
 	private static boolean isProtectedSurface(BlockState state) {
-		Block block = state.getBlock();
-		return block == Blocks.DIRT_PATH || block == Blocks.FARMLAND;
+		return ForestEcology.isProtected(state);
 	}
 
 	private static boolean isPlantableSoil(Block block) {
-		return block == Blocks.GRASS_BLOCK
-				|| block == Blocks.DIRT
-				|| block == Blocks.PODZOL
-				|| block == Blocks.MOSS_BLOCK
-				|| block == Blocks.ROOTED_DIRT;
+		return ForestEcology.isPlantableSoil(block);
 	}
 
 	private static boolean isReplaceableFoliage(Block block) {
-		return block == Blocks.SHORT_GRASS || block == Blocks.FERN || block == Blocks.TALL_GRASS || block == Blocks.LARGE_FERN;
+		return ForestEcology.isFoliage(block);
 	}
 
 	private static BlockPos offset(BlockPos origin, RandomSource random, int radius) {
