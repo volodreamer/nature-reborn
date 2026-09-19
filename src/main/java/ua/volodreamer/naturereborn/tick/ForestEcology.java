@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import ua.volodreamer.naturereborn.species.Species;
 
+import java.util.ArrayList;
 import java.util.List;
 
 final class ForestEcology {
@@ -20,7 +21,7 @@ final class ForestEcology {
 	static final int FALLEN_MIN_TRUNK = 7;
 	static final int FALLEN_LENGTH_MIN = 3;
 	static final int FALLEN_LENGTH_MAX = 4;
-	static final double FALLEN_CHANCE = 0.18;
+	static final double FALLEN_CHANCE = 0.08;
 
 	private ForestEcology() {
 	}
@@ -28,6 +29,13 @@ final class ForestEcology {
 	static boolean needsTwoByTwo(Species species) {
 		String id = species.id();
 		return "dark_oak".equals(id) || "jungle".equals(id);
+	}
+
+	static boolean isTrunkBase(ServerLevel level, BlockPos pos) {
+		if (!level.getBlockState(pos).is(BlockTags.LOGS)) {
+			return false;
+		}
+		return !level.getBlockState(pos.below()).is(BlockTags.LOGS);
 	}
 
 	static int trunkColumnHeight(ServerLevel level, BlockPos pos) {
@@ -70,19 +78,20 @@ final class ForestEcology {
 
 	static double deathMultiplier(ServerLevel level, BlockPos logPos) {
 		int height = trunkColumnHeight(level, logPos);
-		BlockPos top = logPos.atY(logPos.getY() + Math.max(0, height - 1));
-		int light = level.getRawBrightness(top.above(), 0);
-		boolean shaded = light < 9 || tallerNeighbor(level, logPos, height);
+		boolean shaded = tallerNeighbor(level, logPos, height);
 		if (height <= 5 && shaded) {
-			return 4.2;
+			return 3.2;
 		}
 		if (height <= 5) {
-			return 1.6;
+			return 1.3;
 		}
-		if (height >= 8 && !shaded) {
-			return 0.45;
+		if (height >= 12) {
+			return 0.08;
 		}
-		return 1.0;
+		if (height >= 8) {
+			return 0.15;
+		}
+		return 0.35;
 	}
 
 	private static boolean tallerNeighbor(ServerLevel level, BlockPos pos, int height) {
@@ -98,6 +107,32 @@ final class ForestEcology {
 			}
 		}
 		return false;
+	}
+
+	static boolean isTwoByTwoSapling(ServerLevel level, BlockPos pos) {
+		Block sapling = level.getBlockState(pos).getBlock();
+		if (!(sapling instanceof SaplingBlock)) {
+			return false;
+		}
+		BlockPos[] origins = {
+				pos,
+				pos.west(),
+				pos.north(),
+				pos.west().north()
+		};
+		for (BlockPos origin : origins) {
+			if (sameSapling(level, origin, sapling)
+					&& sameSapling(level, origin.east(), sapling)
+					&& sameSapling(level, origin.south(), sapling)
+					&& sameSapling(level, origin.south().east(), sapling)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean sameSapling(ServerLevel level, BlockPos pos, Block sapling) {
+		return level.getBlockState(pos).getBlock() == sapling;
 	}
 
 	static boolean tryPlaceTwoByTwo(ServerLevel level, BlockPos air, Block sapling) {
@@ -184,7 +219,7 @@ final class ForestEcology {
 				? sample.setValue(BlockStateProperties.AXIS, axis)
 				: sample;
 		int length = FALLEN_LENGTH_MIN + random.nextInt(FALLEN_LENGTH_MAX - FALLEN_LENGTH_MIN + 1);
-		BlockPos cursor = root;
+		BlockPos cursor = root.relative(dir);
 		for (int i = 0; i < length; i++) {
 			BlockPos ground = walkToSoil(level, cursor);
 			BlockPos place = ground != null ? ground.above() : cursor;
@@ -193,6 +228,55 @@ final class ForestEcology {
 			}
 			cursor = cursor.relative(dir);
 		}
+	}
+
+	static void relocateHives(ServerLevel level, List<BlockPos> hives, RandomSource random) {
+		for (BlockPos hive : hives) {
+			BlockState state = level.getBlockState(hive);
+			if (!isHive(state.getBlock())) {
+				continue;
+			}
+			level.removeBlock(hive, false);
+			if (random.nextFloat() < 0.35f) {
+				continue;
+			}
+			BlockPos dest = findHiveSupport(level, hive);
+			if (dest != null) {
+				level.setBlock(dest, state, Block.UPDATE_ALL);
+			}
+		}
+	}
+
+	private static BlockPos findHiveSupport(ServerLevel level, BlockPos from) {
+		for (int dy = 0; dy < 16; dy++) {
+			BlockPos probe = from.below(dy);
+			BlockState state = level.getBlockState(probe);
+			if (state.isAir() || isFoliage(state.getBlock()) || isHive(state.getBlock())) {
+				continue;
+			}
+			BlockPos above = probe.above();
+			if (level.isEmptyBlock(above) || isFoliage(level.getBlockState(above).getBlock())) {
+				return above;
+			}
+		}
+		return null;
+	}
+
+	static boolean isHive(Block block) {
+		return block == Blocks.BEE_NEST || block == Blocks.BEEHIVE;
+	}
+
+	static List<BlockPos> collectAdjacentHives(ServerLevel level, List<BlockPos> logs) {
+		List<BlockPos> hives = new ArrayList<>();
+		for (BlockPos log : logs) {
+			for (Direction direction : Direction.values()) {
+				BlockPos next = log.relative(direction);
+				if (isHive(level.getBlockState(next).getBlock()) && !hives.contains(next)) {
+					hives.add(next);
+				}
+			}
+		}
+		return hives;
 	}
 
 	static BlockPos edgePlantSpot(ServerLevel level, BlockPos root, RandomSource random) {
@@ -221,7 +305,7 @@ final class ForestEcology {
 
 	static BlockPos walkToSoil(ServerLevel level, BlockPos start) {
 		BlockPos.MutableBlockPos cursor = start.mutable();
-		for (int i = 0; i < 12; i++) {
+		for (int i = 0; i < 16; i++) {
 			Block block = level.getBlockState(cursor).getBlock();
 			if (isPlantableSoil(block) || isProtected(level.getBlockState(cursor))) {
 				return cursor.immutable();
