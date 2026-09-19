@@ -8,6 +8,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.level.block.Block;
 import ua.volodreamer.naturereborn.NatureReborn;
 import ua.volodreamer.naturereborn.config.NatureRebornConfig;
@@ -27,7 +28,7 @@ public final class NatureRebornCommands {
 
 	private static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("naturereborn")
-				.requires(source -> source.hasPermission(2))
+				.requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
 				.then(Commands.literal("status").executes(NatureRebornCommands::status))
 				.then(Commands.literal("scan").executes(NatureRebornCommands::scan))
 				.then(Commands.literal("reload").executes(NatureRebornCommands::reload)));
@@ -72,7 +73,7 @@ public final class NatureRebornCommands {
 	}
 
 	private static int reload(CommandContext<CommandSourceStack> context) {
-		NatureReborn.setConfig(ua.volodreamer.naturereborn.config.NatureRebornConfig.load());
+		NatureReborn.setConfig(NatureRebornConfig.load());
 		context.getSource().sendSuccess(() -> Component.literal("Reloaded naturereborn.json. Use /reload for species datapacks."), false);
 		return 1;
 	}

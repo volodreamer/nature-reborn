@@ -4,7 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
@@ -19,7 +19,7 @@ public final class Species {
 	private final SpeciesKind kind;
 	private final List<Block> blocks;
 	private final BiomeRates defaults;
-	private final Map<ResourceLocation, BiomeRates> biomeRates;
+	private final Map<Identifier, BiomeRates> biomeRates;
 	private final Map<TagKey<Biome>, BiomeRates> biomeTagRates;
 
 	public Species(
@@ -27,7 +27,7 @@ public final class Species {
 			SpeciesKind kind,
 			List<Block> blocks,
 			BiomeRates defaults,
-			Map<ResourceLocation, BiomeRates> biomeRates,
+			Map<Identifier, BiomeRates> biomeRates,
 			Map<TagKey<Biome>, BiomeRates> biomeTagRates
 	) {
 		this.id = id;
@@ -60,7 +60,7 @@ public final class Species {
 
 	public BiomeRates ratesFor(Level level, BlockPos pos) {
 		Holder<Biome> holder = level.getBiome(pos);
-		ResourceLocation biomeId = holder.unwrapKey().map(key -> key.location()).orElse(null);
+		Identifier biomeId = holder.unwrapKey().map(key -> key.identifier()).orElse(null);
 		if (biomeId != null) {
 			BiomeRates exact = biomeRates.get(biomeId);
 			if (exact != null) {
@@ -76,10 +76,10 @@ public final class Species {
 	}
 
 	public static Block requireBlock(String id) {
-		return BuiltInRegistries.BLOCK.getValue(ResourceLocation.parse(id));
+		return BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
 	}
 
 	public static TagKey<Biome> biomeTag(String id) {
-		return TagKey.create(Registries.BIOME, ResourceLocation.parse(id));
+		return TagKey.create(Registries.BIOME, Identifier.parse(id));
 	}
 }

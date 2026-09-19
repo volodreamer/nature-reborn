@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -39,18 +40,20 @@ public final class NatureTicker {
 		TickStats stats = TickStats.of(level);
 		stats.beginTick();
 
-		Set<Long> visited = new HashSet<>();
+		Set<ChunkPos> visited = new HashSet<>();
 		int processedChunks = 0;
 
 		for (ServerPlayer player : level.players()) {
 			ChunkPos origin = player.chunkPosition();
+			int originX = origin.getMinBlockX() >> 4;
+			int originZ = origin.getMinBlockZ() >> 4;
 			int radius = Math.max(0, config.playerFullRateDistanceChunks);
 			for (int dz = -radius; dz <= radius && processedChunks < MAX_CHUNKS_PER_LEVEL_TICK; dz++) {
 				for (int dx = -radius; dx <= radius && processedChunks < MAX_CHUNKS_PER_LEVEL_TICK; dx++) {
-					int cx = origin.x + dx;
-					int cz = origin.z + dz;
-					long key = ChunkPos.asLong(cx, cz);
-					if (!visited.add(key) || !level.hasChunk(cx, cz)) {
+					int cx = originX + dx;
+					int cz = originZ + dz;
+					ChunkPos chunkPos = new ChunkPos(cx, cz);
+					if (!visited.add(chunkPos) || !level.hasChunk(cx, cz)) {
 						continue;
 					}
 					LevelChunk chunk = level.getChunk(cx, cz);
@@ -68,11 +71,12 @@ public final class NatureTicker {
 		ChunkPos pos = chunk.getPos();
 		int minY = level.getMinY();
 		int height = level.getHeight();
+		RandomSource random = level.getRandom();
 
 		for (int i = 0; i < rolls; i++) {
-			int x = pos.getMinBlockX() + level.random.nextInt(16);
-			int z = pos.getMinBlockZ() + level.random.nextInt(16);
-			int y = minY + level.random.nextInt(Math.max(1, height));
+			int x = pos.getMinBlockX() + random.nextInt(16);
+			int z = pos.getMinBlockZ() + random.nextInt(16);
+			int y = minY + random.nextInt(Math.max(1, height));
 			BlockPos blockPos = new BlockPos(x, y, z);
 			stats.rolls++;
 
