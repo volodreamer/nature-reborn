@@ -1,0 +1,17 @@
+{
+  "id": "jungle",
+  "kind": "tree",
+  "blocks": [
+    "minecraft:jungle_log",
+    "minecraft:jungle_wood",
+    "minecraft:jungle_leaves",
+    "minecraft:jungle_sapling",
+    "minecraft:cocoa"
+  ],
+  "defaults": { "growth": 0.3, "spread": 0.2, "death": 0.25 },
+  "biomes": {
+    "#minecraft:is_jungle": { "growth": 1.15, "spread": 0.7, "death": 0.14 },
+    "#minecraft:is_forest": { "growth": 0.35, "spread": 0.15, "death": 0.4 },
+    "#minecraft:is_desert": { "growth": 0.0, "spread": 0.0, "death": 4.0 }
+  }
+}

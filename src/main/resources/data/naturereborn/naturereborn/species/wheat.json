@@ -1,0 +1,11 @@
+{
+  "id": "wheat",
+  "kind": "crop",
+  "blocks": ["minecraft:wheat"],
+  "defaults": { "growth": 0.9, "spread": 0.6, "death": 0.4 },
+  "biomes": {
+    "minecraft:plains": { "growth": 1.2, "spread": 0.9, "death": 0.3 },
+    "#minecraft:is_forest": { "growth": 0.8, "spread": 0.5, "death": 0.45 },
+    "#minecraft:is_desert": { "growth": 0.15, "spread": 0.05, "death": 1.8 }
+  }
+}

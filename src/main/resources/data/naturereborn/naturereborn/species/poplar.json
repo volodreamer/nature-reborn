@@ -1,0 +1,18 @@
+{
+  "id": "poplar",
+  "kind": "tree",
+  "blocks": [
+    "minecraft:poplar_log",
+    "minecraft:poplar_wood",
+    "minecraft:poplar_sapling",
+    "minecraft:red_poplar_leaves",
+    "minecraft:orange_poplar_leaves",
+    "minecraft:yellow_poplar_leaves"
+  ],
+  "defaults": { "growth": 0.5, "spread": 0.35, "death": 0.3 },
+  "biomes": {
+    "minecraft:dappled_forest": { "growth": 1.3, "spread": 1.0, "death": 0.12 },
+    "#minecraft:is_forest": { "growth": 0.8, "spread": 0.5, "death": 0.22 },
+    "#minecraft:is_taiga": { "growth": 0.9, "spread": 0.45, "death": 0.2 }
+  }
+}

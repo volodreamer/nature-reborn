@@ -1,0 +1,16 @@
+{
+  "id": "grass",
+  "kind": "grass",
+  "blocks": [
+    "minecraft:grass_block",
+    "minecraft:short_grass",
+    "minecraft:tall_grass"
+  ],
+  "defaults": { "growth": 1.0, "spread": 0.8, "death": 0.15 },
+  "biomes": {
+    "minecraft:plains": { "growth": 1.3, "spread": 1.2, "death": 0.08 },
+    "#minecraft:is_forest": { "growth": 1.1, "spread": 1.0, "death": 0.1 },
+    "#minecraft:is_desert": { "growth": 0.05, "spread": 0.0, "death": 2.5 },
+    "#minecraft:is_ocean": { "growth": 0.0, "spread": 0.0, "death": 3.0 }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "crimson",
+  "kind": "nether",
+  "blocks": [
+    "minecraft:crimson_stem",
+    "minecraft:crimson_fungus",
+    "minecraft:crimson_roots",
+    "minecraft:nether_wart_block"
+  ],
+  "defaults": { "growth": 0.15, "spread": 0.08, "death": 0.4 },
+  "biomes": {
+    "minecraft:crimson_forest": { "growth": 1.2, "spread": 0.8, "death": 0.16 },
+    "minecraft:nether_wastes": { "growth": 0.35, "spread": 0.15, "death": 0.5 },
+    "minecraft:warped_forest": { "growth": 0.05, "spread": 0.0, "death": 2.2 }
+  }
+}

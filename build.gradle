@@ -30,8 +30,9 @@ dependencies {
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	modImplementation "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}"
-	modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+	// Loom 1.17 / MC 26.x uses implementation, not modImplementation.
+	implementation "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}"
+	implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
 processResources {

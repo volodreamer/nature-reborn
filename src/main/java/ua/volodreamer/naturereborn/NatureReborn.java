@@ -3,7 +3,9 @@ package ua.volodreamer.naturereborn;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ua.volodreamer.naturereborn.command.NatureRebornCommands;
 import ua.volodreamer.naturereborn.config.NatureRebornConfig;
+import ua.volodreamer.naturereborn.species.SpeciesLoader;
 import ua.volodreamer.naturereborn.tick.NatureTicker;
 
 public final class NatureReborn implements ModInitializer {
@@ -15,7 +17,9 @@ public final class NatureReborn implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		config = NatureRebornConfig.load();
+		SpeciesLoader.register();
 		NatureTicker.register();
+		NatureRebornCommands.register();
 		LOGGER.info("Nature Reborn {} loaded (master={}, overworld={}, nether={})",
 				config.versionTag(),
 				config.masterEnabled,

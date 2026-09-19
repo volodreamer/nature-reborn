@@ -1,0 +1,12 @@
+{
+  "id": "nether_wart",
+  "kind": "nether",
+  "blocks": ["minecraft:nether_wart"],
+  "defaults": { "growth": 0.2, "spread": 0.1, "death": 0.5 },
+  "biomes": {
+    "minecraft:nether_wastes": { "growth": 0.8, "spread": 0.45, "death": 0.25 },
+    "minecraft:crimson_forest": { "growth": 1.1, "spread": 0.7, "death": 0.18 },
+    "minecraft:warped_forest": { "growth": 0.4, "spread": 0.15, "death": 0.4 },
+    "minecraft:soul_sand_valley": { "growth": 0.6, "spread": 0.35, "death": 0.3 }
+  }
+}
