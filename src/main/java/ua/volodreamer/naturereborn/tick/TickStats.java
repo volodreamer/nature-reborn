@@ -14,6 +14,10 @@ public final class TickStats {
 
 	public int rolls;
 	public int speciesHits;
+	public int grassSpreads;
+	public int grassRegrows;
+	public int grassDeaths;
+	public int saplingsPlanted;
 	public int chunksProcessedLastTick;
 	public int uniqueChunkKeysConsidered;
 	public long lastTickNanos;
@@ -33,6 +37,10 @@ public final class TickStats {
 	public void beginTick() {
 		rolls = 0;
 		speciesHits = 0;
+		grassSpreads = 0;
+		grassRegrows = 0;
+		grassDeaths = 0;
+		saplingsPlanted = 0;
 		tickStartNanos = System.nanoTime();
 	}
 
@@ -49,10 +57,14 @@ public final class TickStats {
 
 	public String summaryLine() {
 		return String.format(Locale.ROOT,
-				"chunks=%d rolls=%d hits=%d last=%s rates[g=%.2f s=%.2f d=%.2f] cost=%.3fms",
+				"chunks=%d rolls=%d hits=%d grass[s=%d r=%d d=%d] saplings=%d last=%s rates[g=%.2f s=%.2f d=%.2f] cost=%.3fms",
 				chunksProcessedLastTick,
 				rolls,
 				speciesHits,
+				grassSpreads,
+				grassRegrows,
+				grassDeaths,
+				saplingsPlanted,
 				lastHitSpecies,
 				lastRates.growth(),
 				lastRates.spread(),

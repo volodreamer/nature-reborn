@@ -1,16 +1,17 @@
 {
   "id": "dark_oak",
   "kind": "tree",
+  "plant": "minecraft:dark_oak_sapling",
   "blocks": [
     "minecraft:dark_oak_log",
     "minecraft:dark_oak_wood",
     "minecraft:dark_oak_leaves",
     "minecraft:dark_oak_sapling"
   ],
-  "defaults": { "growth": 0.4, "spread": 0.25, "death": 0.2 },
+  "defaults": { "growth": 0.7, "spread": 0.45, "death": 0.4 },
   "biomes": {
-    "minecraft:dark_forest": { "growth": 1.0, "spread": 0.55, "death": 0.12 },
-    "#minecraft:is_forest": { "growth": 0.6, "spread": 0.3, "death": 0.2 },
-    "#minecraft:is_desert": { "growth": 0.0, "spread": 0.0, "death": 3.5 }
+    "minecraft:dark_forest": { "growth": 1.2, "spread": 0.7, "death": 0.2 },
+    "#minecraft:is_forest": { "growth": 0.9, "spread": 0.4, "death": 0.35 },
+    "#minecraft:is_desert": { "growth": 0.0, "spread": 0.0, "death": 3.0 }
   }
 }

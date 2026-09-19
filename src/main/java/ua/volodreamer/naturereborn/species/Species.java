@@ -9,6 +9,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,6 +19,7 @@ public final class Species {
 	private final String id;
 	private final SpeciesKind kind;
 	private final List<Block> blocks;
+	private final Block plant;
 	private final BiomeRates defaults;
 	private final Map<Identifier, BiomeRates> biomeRates;
 	private final Map<TagKey<Biome>, BiomeRates> biomeTagRates;
@@ -26,6 +28,7 @@ public final class Species {
 			String id,
 			SpeciesKind kind,
 			List<Block> blocks,
+			Block plant,
 			BiomeRates defaults,
 			Map<Identifier, BiomeRates> biomeRates,
 			Map<TagKey<Biome>, BiomeRates> biomeTagRates
@@ -33,6 +36,7 @@ public final class Species {
 		this.id = id;
 		this.kind = kind;
 		this.blocks = List.copyOf(blocks);
+		this.plant = plant;
 		this.defaults = defaults;
 		this.biomeRates = Map.copyOf(biomeRates);
 		this.biomeTagRates = new LinkedHashMap<>(biomeTagRates);
@@ -48,6 +52,10 @@ public final class Species {
 
 	public List<Block> blocks() {
 		return blocks;
+	}
+
+	public Block plant() {
+		return plant;
 	}
 
 	public BiomeRates defaults() {
@@ -75,7 +83,10 @@ public final class Species {
 		return defaults;
 	}
 
-	public static Block requireBlock(String id) {
+	public static Block blockOrAir(String id) {
+		if (id == null || id.isBlank()) {
+			return Blocks.AIR;
+		}
 		return BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
 	}
 

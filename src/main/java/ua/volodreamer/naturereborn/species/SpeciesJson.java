@@ -8,6 +8,7 @@ import java.util.Map;
 public final class SpeciesJson {
 	public String id;
 	public String kind;
+	public String plant;
 	public List<String> blocks = new ArrayList<>();
 	public RateJson defaults = new RateJson();
 	public Map<String, RateJson> biomes = new LinkedHashMap<>();

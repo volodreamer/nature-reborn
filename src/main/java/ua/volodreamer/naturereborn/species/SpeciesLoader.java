@@ -80,6 +80,7 @@ public final class SpeciesLoader {
 		}
 
 		List<Block> blocks = new ArrayList<>();
+		Block inferredPlant = Blocks.AIR;
 		for (String blockId : json.blocks) {
 			Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockId));
 			if (block == Blocks.AIR) {
@@ -87,10 +88,18 @@ public final class SpeciesLoader {
 				continue;
 			}
 			blocks.add(block);
+			if (inferredPlant == Blocks.AIR && blockId.contains("sapling")) {
+				inferredPlant = block;
+			}
 		}
 		if (blocks.isEmpty()) {
 			NatureReborn.LOGGER.error("Species {} has no valid blocks", json.id);
 			return null;
+		}
+
+		Block plant = Species.blockOrAir(json.plant);
+		if (plant == Blocks.AIR) {
+			plant = inferredPlant;
 		}
 
 		BiomeRates defaults = json.defaults.toRates(BiomeRates.NEUTRAL);
@@ -105,6 +114,6 @@ public final class SpeciesLoader {
 				biomeRates.put(Identifier.parse(key), rates);
 			}
 		}
-		return new Species(json.id, kind, blocks, defaults, biomeRates, tagRates);
+		return new Species(json.id, kind, blocks, plant, defaults, biomeRates, tagRates);
 	}
 }

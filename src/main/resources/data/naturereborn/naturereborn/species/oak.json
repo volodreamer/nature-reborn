@@ -1,6 +1,7 @@
 {
   "id": "oak",
   "kind": "tree",
+  "plant": "minecraft:oak_sapling",
   "blocks": [
     "minecraft:oak_log",
     "minecraft:oak_wood",
