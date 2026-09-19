@@ -19,6 +19,9 @@ public final class NatureRebornConfig {
 	public boolean overworldEnabled = true;
 	public boolean netherEnabled = true;
 
+	/** Multiplier for all nature chances. 1.0 = normal, 0 = pause mutations, 4 = debug-fast. */
+	public double natureSpeed = 1.0;
+
 	public boolean plantsEnabled = true;
 	public boolean treesEnabled = true;
 	public boolean grassEnabled = true;
@@ -50,6 +53,13 @@ public final class NatureRebornConfig {
 
 	public String versionTag() {
 		return "0.1.0-alpha";
+	}
+
+	public double clampedSpeed() {
+		if (Double.isNaN(natureSpeed) || natureSpeed < 0) {
+			return 0;
+		}
+		return Math.min(natureSpeed, 8.0);
 	}
 
 	public static Path path() {

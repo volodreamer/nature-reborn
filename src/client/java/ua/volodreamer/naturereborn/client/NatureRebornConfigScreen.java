@@ -38,6 +38,38 @@ public final class NatureRebornConfigScreen {
 				.setSaveConsumer(value -> NatureReborn.config().netherEnabled = value)
 				.build());
 
+		general.addEntry(entries.startDoubleField(Component.literal("Nature speed"), current.natureSpeed)
+				.setDefaultValue(1.0)
+				.setMin(0.0)
+				.setMax(8.0)
+				.setTooltip(Component.literal("Global multiplier for growth, spread and death chances. 0 pauses mutations. 3–4 is useful for debugging."))
+				.setSaveConsumer(value -> NatureReborn.config().natureSpeed = value)
+				.build());
+
+		ConfigCategory performance = builder.getOrCreateCategory(Component.literal("Performance"));
+		performance.addEntry(entries.startIntField(Component.literal("Player radius (chunks)"), current.playerFullRateDistanceChunks)
+				.setDefaultValue(8)
+				.setMin(0)
+				.setMax(16)
+				.setSaveConsumer(value -> NatureReborn.config().playerFullRateDistanceChunks = value)
+				.build());
+		performance.addEntry(entries.startIntField(Component.literal("Rolls per chunk tick"), current.natureRollsPerChunkTick)
+				.setDefaultValue(4)
+				.setMin(0)
+				.setMax(16)
+				.setSaveConsumer(value -> NatureReborn.config().natureRollsPerChunkTick = value)
+				.build());
+
+		ConfigCategory plants = builder.getOrCreateCategory(Component.literal("Plants"));
+		plants.addEntry(entries.startBooleanToggle(Component.literal("Grass systems"), current.grassEnabled)
+				.setDefaultValue(true)
+				.setSaveConsumer(value -> NatureReborn.config().grassEnabled = value)
+				.build());
+		plants.addEntry(entries.startBooleanToggle(Component.literal("Other plants"), current.plantsEnabled)
+				.setDefaultValue(true)
+				.setSaveConsumer(value -> NatureReborn.config().plantsEnabled = value)
+				.build());
+
 		ConfigCategory crops = builder.getOrCreateCategory(Component.literal("Crops"));
 		crops.addEntry(entries.startBooleanToggle(Component.literal("Crop systems"), current.cropsEnabled)
 				.setDefaultValue(true)

@@ -17,14 +17,14 @@ import ua.volodreamer.naturereborn.species.Species;
 import ua.volodreamer.naturereborn.species.SpeciesRegistry;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
- * Walks player-nearby loaded chunks with a per-tick budget.
- * Phase 2 samples the surface column plus one random block, then applies grass/tree actions.
+ * Walks random player-nearby chunks so work is not locked to a scan-order rectangle.
  */
 public final class NatureTicker {
-	private static final int MAX_CHUNKS_PER_LEVEL_TICK = 48;
+	private static final int MAX_CHUNKS_PER_LEVEL_TICK = 24;
 
 	private NatureTicker() {
 	}
@@ -42,27 +42,32 @@ public final class NatureTicker {
 		TickStats stats = TickStats.of(level);
 		stats.beginTick();
 
+		List<ServerPlayer> players = level.players();
+		if (players.isEmpty()) {
+			stats.endTick(0, 0);
+			return;
+		}
+
+		RandomSource random = level.getRandom();
+		int radius = Math.max(0, config.playerFullRateDistanceChunks);
 		Set<ChunkPos> visited = new HashSet<>();
 		int processedChunks = 0;
+		int attempts = MAX_CHUNKS_PER_LEVEL_TICK * 3;
 
-		for (ServerPlayer player : level.players()) {
+		for (int i = 0; i < attempts && processedChunks < MAX_CHUNKS_PER_LEVEL_TICK; i++) {
+			ServerPlayer player = players.get(random.nextInt(players.size()));
 			ChunkPos origin = player.chunkPosition();
 			int originX = origin.getMinBlockX() >> 4;
 			int originZ = origin.getMinBlockZ() >> 4;
-			int radius = Math.max(0, config.playerFullRateDistanceChunks);
-			for (int dz = -radius; dz <= radius && processedChunks < MAX_CHUNKS_PER_LEVEL_TICK; dz++) {
-				for (int dx = -radius; dx <= radius && processedChunks < MAX_CHUNKS_PER_LEVEL_TICK; dx++) {
-					int cx = originX + dx;
-					int cz = originZ + dz;
-					ChunkPos chunkPos = new ChunkPos(cx, cz);
-					if (!visited.add(chunkPos) || !level.hasChunk(cx, cz)) {
-						continue;
-					}
-					LevelChunk chunk = level.getChunk(cx, cz);
-					sampleChunk(level, chunk, config, stats);
-					processedChunks++;
-				}
+			int cx = originX + random.nextInt(radius * 2 + 1) - radius;
+			int cz = originZ + random.nextInt(radius * 2 + 1) - radius;
+			ChunkPos chunkPos = new ChunkPos(cx, cz);
+			if (!visited.add(chunkPos) || !level.hasChunk(cx, cz)) {
+				continue;
 			}
+			LevelChunk chunk = level.getChunk(cx, cz);
+			sampleChunk(level, chunk, config, stats);
+			processedChunks++;
 		}
 
 		stats.endTick(processedChunks, visited.size());
