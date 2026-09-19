@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "naturereborn",
+  "version": "${version}",
+  "name": "Nature Reborn",
+  "description": "Makes Minecraft nature dynamic: plants and trees grow, spread and die by biome; crops senesce and reseed; optional lumberjack; longer-lived fire.",
+  "authors": [
+    "volodreamer"
+  ],
+  "contact": {
+    "sources": "https://github.com/volodreamer/nature-reborn",
+    "issues": "https://github.com/volodreamer/nature-reborn/issues"
+  },
+  "license": "GPL-3.0-or-later",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "ua.volodreamer.naturereborn.NatureReborn"
+    ],
+    "client": [
+      "ua.volodreamer.naturereborn.client.NatureRebornClient"
+    ],
+    "modmenu": [
+      "ua.volodreamer.naturereborn.client.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "naturereborn.mixins.json",
+    {
+      "config": "naturereborn.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": ">=0.161.0+26.3",
+    "cloth-config": ">=*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}

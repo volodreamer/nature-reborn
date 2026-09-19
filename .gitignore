@@ -1,0 +1,25 @@
+# gradle
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# ide
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+
+# minecraft / loom
+run/
+runs/
+*.launch
+
+# os
+.DS_Store
+Thumbs.db

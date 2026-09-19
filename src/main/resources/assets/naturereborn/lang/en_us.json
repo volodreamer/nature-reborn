@@ -1,0 +1,13 @@
+{
+  "modmenu.nameTranslation.naturereborn": "Nature Reborn",
+  "text.autoconfig.naturereborn.title": "Nature Reborn",
+  "naturereborn.config.title": "Nature Reborn",
+  "naturereborn.config.masterEnabled": "Enable Nature Reborn",
+  "naturereborn.config.plants": "Plants",
+  "naturereborn.config.trees": "Trees",
+  "naturereborn.config.crops": "Crops",
+  "naturereborn.config.farming": "Farming",
+  "naturereborn.config.lumberjack": "Lumberjack",
+  "naturereborn.config.fire": "Fire",
+  "naturereborn.config.performance": "Performance"
+}
