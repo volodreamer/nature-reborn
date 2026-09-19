@@ -1,7 +1,6 @@
 package ua.volodreamer.naturereborn;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ua.volodreamer.naturereborn.config.NatureRebornConfig;
@@ -16,7 +15,7 @@ public final class NatureReborn implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		config = NatureRebornConfig.load();
-		NatureTicker.register(ServerTickEvents.END_WORLD_TICK);
+		NatureTicker.register();
 		LOGGER.info("Nature Reborn {} loaded (master={}, overworld={}, nether={})",
 				config.versionTag(),
 				config.masterEnabled,
