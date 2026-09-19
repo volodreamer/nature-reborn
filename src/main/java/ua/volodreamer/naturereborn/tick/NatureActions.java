@@ -31,7 +31,7 @@ public final class NatureActions {
 	private static final double BASE_GRASS_GROW_UP = 0.04;
 	private static final double BASE_PLANT_DEATH = 0.018;
 	private static final double BASE_FLOWER_SPREAD = 0.035;
-	private static final double BASE_SAPLING_PLANT = 0.06;
+	private static final double BASE_SAPLING_PLANT = 0.045;
 	private static final double BASE_SAPLING_GROW = 0.14;
 	private static final double BASE_SAPLING_DEATH = 0.05;
 	private static final double BASE_TREE_DEATH = 0.0035;
@@ -77,16 +77,27 @@ public final class NatureActions {
 
 	private static void handleGrass(ServerLevel level, BlockPos pos, BlockState state, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
 		Block block = state.getBlock();
+		boolean shaded = ForestEcology.isUnderCanopy(level, pos.above().equals(pos) ? pos : pos);
+		if (block == Blocks.GRASS_BLOCK) {
+			shaded = ForestEcology.isUnderCanopy(level, pos.above());
+		} else {
+			shaded = ForestEcology.isUnderCanopy(level, pos);
+		}
 
-		if (isReplaceableFoliage(block) && chance(random, BASE_PLANT_DEATH * rates.death() * speed)) {
+		double shadeDeath = shaded ? 4.5 : 1.0;
+		if (isReplaceableFoliage(block) && chance(random, BASE_PLANT_DEATH * rates.death() * speed * shadeDeath)) {
 			level.destroyBlock(pos, false);
 			stats.grassDeaths++;
 			return;
 		}
 
+		if (shaded) {
+			return;
+		}
+
 		if (block == Blocks.GRASS_BLOCK && chance(random, BASE_GRASS_SPREAD * rates.spread() * speed)) {
 			BlockPos target = offset(pos, random, SPREAD_RADIUS);
-			if (canBecomeGrass(level, target)) {
+			if (canBecomeGrass(level, target) && !ForestEcology.isUnderCanopy(level, target.above())) {
 				level.setBlock(target, Blocks.GRASS_BLOCK.defaultBlockState(), Block.UPDATE_ALL);
 				stats.grassSpreads++;
 			}
@@ -124,9 +135,14 @@ public final class NatureActions {
 
 	private static void handleFlower(ServerLevel level, BlockPos pos, BlockState state, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
 		Block block = state.getBlock();
-		if (chance(random, BASE_PLANT_DEATH * rates.death() * speed)) {
+		boolean shaded = ForestEcology.isUnderCanopy(level, pos);
+		double shadeDeath = shaded ? 5.0 : 1.0;
+		if (chance(random, BASE_PLANT_DEATH * rates.death() * speed * shadeDeath)) {
 			level.destroyBlock(pos, false);
 			stats.flowerDeaths++;
+			return;
+		}
+		if (shaded) {
 			return;
 		}
 		if (!chance(random, BASE_FLOWER_SPREAD * rates.spread() * speed)) {
@@ -141,6 +157,9 @@ public final class NatureActions {
 		}
 		BlockPos air = ground.above();
 		if (!level.isEmptyBlock(air) || level.getRawBrightness(air, 0) < MIN_LIGHT) {
+			return;
+		}
+		if (ForestEcology.isUnderCanopy(level, air)) {
 			return;
 		}
 		level.setBlock(air, block.defaultBlockState(), Block.UPDATE_ALL);
@@ -166,9 +185,13 @@ public final class NatureActions {
 	private static void handleSapling(ServerLevel level, BlockPos pos, BlockState state, SaplingBlock sapling, Species species, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
 		boolean twoByTwo = ForestEcology.isTwoByTwoSapling(level, pos);
 		if (!twoByTwo && ForestEcology.needsTwoByTwo(species)) {
-			if (ForestEcology.tryPlaceTwoByTwo(level, pos, sapling)) {
+			if (!ForestEcology.tooCloseForMega(level, pos) && ForestEcology.tryPlaceTwoByTwo(level, pos, sapling)) {
 				twoByTwo = true;
 				stats.saplingsPlanted += 3;
+			} else if (chance(random, BASE_SAPLING_DEATH * rates.death() * speed * 2.5)) {
+				level.destroyBlock(pos, false);
+				stats.saplingDeaths++;
+				return;
 			}
 		}
 
@@ -247,7 +270,7 @@ public final class NatureActions {
 			ForestEcology.placeFallenLog(level, lowest, logs, sample, random);
 		}
 
-		if (species.plant() != null && species.plant() != Blocks.AIR && random.nextFloat() < 0.28f) {
+		if (species.plant() != null && species.plant() != Blocks.AIR && random.nextFloat() < 0.22f) {
 			BlockPos edge = ForestEcology.edgePlantSpot(level, lowest, random);
 			if (edge != null) {
 				if (ForestEcology.needsTwoByTwo(species)) {
@@ -274,7 +297,7 @@ public final class NatureActions {
 			if (!species.matches(state.getBlock()) && !state.is(BlockTags.LOGS) && !state.is(BlockTags.LEAVES)) {
 				continue;
 			}
-			if (state.is(BlockTags.LOGS) && (species.matches(state.getBlock()) || sameWoodFamily(state, species))) {
+			if (state.is(BlockTags.LOGS) && species.matches(state.getBlock())) {
 				logs.add(current);
 			} else if (state.is(BlockTags.LEAVES) && species.matches(state.getBlock())) {
 				if (leaves.size() < MAX_TREE_LEAVES) {
@@ -290,10 +313,6 @@ public final class NatureActions {
 				}
 			}
 		}
-	}
-
-	private static boolean sameWoodFamily(BlockState state, Species species) {
-		return species.matches(state.getBlock());
 	}
 
 	private static void handleSaplingPlant(ServerLevel level, BlockPos origin, Species species, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
