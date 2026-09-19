@@ -70,6 +70,7 @@ public final class NatureActions {
 					handleTree(level, pos, state, species, rates, random, speed, config, stats);
 				}
 			}
+			case CROP, NETHER -> CropLogic.tick(level, pos, state, species, rates, config, stats);
 			default -> {
 			}
 		}
@@ -77,12 +78,9 @@ public final class NatureActions {
 
 	private static void handleGrass(ServerLevel level, BlockPos pos, BlockState state, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
 		Block block = state.getBlock();
-		boolean shaded = ForestEcology.isUnderCanopy(level, pos.above().equals(pos) ? pos : pos);
-		if (block == Blocks.GRASS_BLOCK) {
-			shaded = ForestEcology.isUnderCanopy(level, pos.above());
-		} else {
-			shaded = ForestEcology.isUnderCanopy(level, pos);
-		}
+		boolean shaded = block == Blocks.GRASS_BLOCK
+				? ForestEcology.isUnderCanopy(level, pos.above())
+				: ForestEcology.isUnderCanopy(level, pos);
 
 		double shadeDeath = shaded ? 4.5 : 1.0;
 		if (isReplaceableFoliage(block) && chance(random, BASE_PLANT_DEATH * rates.death() * speed * shadeDeath)) {
