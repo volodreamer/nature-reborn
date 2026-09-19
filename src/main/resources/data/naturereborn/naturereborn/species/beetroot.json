@@ -1,0 +1,9 @@
+{
+  "id": "beetroot",
+  "kind": "crop",
+  "blocks": ["minecraft:beetroots"],
+  "defaults": { "growth": 0.85, "spread": 0.45, "death": 0.38 },
+  "biomes": {
+    "minecraft:plains": { "growth": 1.05, "spread": 0.7, "death": 0.3 }
+  }
+}

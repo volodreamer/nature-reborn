@@ -1,0 +1,10 @@
+{
+  "id": "potato",
+  "kind": "crop",
+  "blocks": ["minecraft:potatoes"],
+  "defaults": { "growth": 0.95, "spread": 0.55, "death": 0.35 },
+  "biomes": {
+    "minecraft:plains": { "growth": 1.15, "spread": 0.8, "death": 0.28 },
+    "#minecraft:is_forest": { "growth": 0.75, "spread": 0.4, "death": 0.45 }
+  }
+}
