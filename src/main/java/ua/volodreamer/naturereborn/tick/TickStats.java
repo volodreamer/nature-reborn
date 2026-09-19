@@ -20,6 +20,9 @@ public final class TickStats {
 	public int flowerSpreads;
 	public int flowerDeaths;
 	public int saplingsPlanted;
+	public int saplingGrowths;
+	public int saplingDeaths;
+	public int treeDeaths;
 	public int chunksProcessedLastTick;
 	public int uniqueChunkKeysConsidered;
 	public long lastTickNanos;
@@ -45,6 +48,9 @@ public final class TickStats {
 		flowerSpreads = 0;
 		flowerDeaths = 0;
 		saplingsPlanted = 0;
+		saplingGrowths = 0;
+		saplingDeaths = 0;
+		treeDeaths = 0;
 		tickStartNanos = System.nanoTime();
 	}
 
@@ -61,17 +67,12 @@ public final class TickStats {
 
 	public String summaryLine() {
 		return String.format(Locale.ROOT,
-				"chunks=%d rolls=%d hits=%d grass[s=%d r=%d d=%d] flowers[s=%d d=%d] saplings=%d last=%s cost=%.3fms",
-				chunksProcessedLastTick,
-				rolls,
-				speciesHits,
-				grassSpreads,
-				grassRegrows,
-				grassDeaths,
-				flowerSpreads,
-				flowerDeaths,
-				saplingsPlanted,
-				lastHitSpecies,
+				"chunks=%d rolls=%d hits=%d grass[s=%d r=%d d=%d] flowers[s=%d d=%d] sapling[p=%d g=%d d=%d] treesDead=%d last=%s cost=%.3fms",
+				chunksProcessedLastTick, rolls, speciesHits,
+				grassSpreads, grassRegrows, grassDeaths,
+				flowerSpreads, flowerDeaths,
+				saplingsPlanted, saplingGrowths, saplingDeaths,
+				treeDeaths, lastHitSpecies,
 				lastTickNanos / 1_000_000.0);
 	}
 }

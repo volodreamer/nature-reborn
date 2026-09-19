@@ -1,11 +1,15 @@
 package ua.volodreamer.naturereborn.tick;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -14,20 +18,30 @@ import ua.volodreamer.naturereborn.config.NatureRebornConfig;
 import ua.volodreamer.naturereborn.species.BiomeRates;
 import ua.volodreamer.naturereborn.species.Species;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 public final class NatureActions {
 	private static final double BASE_GRASS_SPREAD = 0.06;
 	private static final double BASE_COVER_GROW = 0.018;
 	private static final double BASE_GRASS_GROW_UP = 0.04;
 	private static final double BASE_PLANT_DEATH = 0.018;
 	private static final double BASE_FLOWER_SPREAD = 0.035;
-	private static final double BASE_SAPLING_PLANT = 0.09;
+	private static final double BASE_SAPLING_PLANT = 0.07;
+	private static final double BASE_SAPLING_GROW = 0.08;
+	private static final double BASE_SAPLING_DEATH = 0.06;
+	private static final double BASE_TREE_DEATH = 0.012;
 	private static final int SPREAD_RADIUS = 3;
 	private static final int MIN_LIGHT = 9;
+	private static final int MAX_TREE_LOGS = 80;
+	private static final int MAX_TREE_LEAVES = 160;
 
 	private static final Block[] GROUND_COVER = {
-			Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS,
-			Blocks.FERN,
-			Blocks.DANDELION, Blocks.POPPY, Blocks.OXEYE_DAISY, Blocks.CORNFLOWER, Blocks.AZURE_BLUET
+			Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS,
+			Blocks.FERN
 	};
 
 	private NatureActions() {
@@ -52,7 +66,7 @@ public final class NatureActions {
 			}
 			case TREE -> {
 				if (config.treesEnabled) {
-					handleSaplingPlant(level, pos, species, rates, random, speed, stats);
+					handleTree(level, pos, state, species, rates, random, speed, config, stats);
 				}
 			}
 			default -> {
@@ -63,13 +77,9 @@ public final class NatureActions {
 	private static void handleGrass(ServerLevel level, BlockPos pos, BlockState state, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
 		Block block = state.getBlock();
 
-		if (isLivingCover(block) && chance(random, BASE_PLANT_DEATH * rates.death() * speed)) {
-			destroyCover(level, pos, state);
+		if (isReplaceableFoliage(block) && chance(random, BASE_PLANT_DEATH * rates.death() * speed)) {
+			level.destroyBlock(pos, false);
 			stats.grassDeaths++;
-			return;
-		}
-
-		if (block == Blocks.GRASS_BLOCK && isProtectedSurface(level.getBlockState(pos))) {
 			return;
 		}
 
@@ -107,11 +117,7 @@ public final class NatureActions {
 			}
 			Block cover = GROUND_COVER[random.nextInt(GROUND_COVER.length)];
 			level.setBlock(above, cover.defaultBlockState(), Block.UPDATE_ALL);
-			if (isFlower(cover)) {
-				stats.flowerSpreads++;
-			} else {
-				stats.grassRegrows++;
-			}
+			stats.grassRegrows++;
 		}
 	}
 
@@ -140,6 +146,118 @@ public final class NatureActions {
 		stats.flowerSpreads++;
 	}
 
+	private static void handleTree(ServerLevel level, BlockPos pos, BlockState state, Species species, BiomeRates rates, RandomSource random, double speed, NatureRebornConfig config, TickStats stats) {
+		Block block = state.getBlock();
+		if (block instanceof SaplingBlock sapling) {
+			handleSapling(level, pos, state, sapling, rates, random, speed, stats);
+			return;
+		}
+		if (state.is(BlockTags.LOGS) && chance(random, BASE_TREE_DEATH * rates.death() * speed)) {
+			killTree(level, pos, species, random, config, stats);
+		}
+	}
+
+	private static void handleSapling(ServerLevel level, BlockPos pos, BlockState state, SaplingBlock sapling, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
+		boolean crowded = nearbySaplings(level, pos) > 2;
+		boolean dark = level.getRawBrightness(pos, 0) < MIN_LIGHT;
+		boolean blocked = !hasGrowSpace(level, pos);
+		boolean canGrow = sapling instanceof BonemealableBlock growable
+				&& growable.isValidBonemealTarget(level, pos, state)
+				&& !crowded && !dark && !blocked;
+
+		if (!canGrow && chance(random, BASE_SAPLING_DEATH * rates.death() * speed * (crowded || dark || blocked ? 3.0 : 1.0))) {
+			level.destroyBlock(pos, false);
+			stats.saplingDeaths++;
+			return;
+		}
+
+		if (canGrow && chance(random, BASE_SAPLING_GROW * rates.growth() * speed)) {
+			((BonemealableBlock) sapling).performBonemeal(level, random, pos, state);
+			if (!(level.getBlockState(pos).getBlock() instanceof SaplingBlock)) {
+				stats.saplingGrowths++;
+			}
+		}
+	}
+
+	private static boolean hasGrowSpace(ServerLevel level, BlockPos pos) {
+		for (int dy = 1; dy <= 4; dy++) {
+			BlockState above = level.getBlockState(pos.above(dy));
+			if (!above.isAir() && !above.is(BlockTags.LEAVES) && !isReplaceableFoliage(above.getBlock())) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static void killTree(ServerLevel level, BlockPos origin, Species species, RandomSource random, NatureRebornConfig config, TickStats stats) {
+		List<BlockPos> logs = new ArrayList<>();
+		List<BlockPos> leaves = new ArrayList<>();
+		floodTree(level, origin, species, logs, leaves);
+		if (logs.size() < 3) {
+			return;
+		}
+
+		BlockPos lowest = logs.getFirst();
+		for (BlockPos log : logs) {
+			if (log.getY() < lowest.getY()) {
+				lowest = log;
+			}
+		}
+
+		boolean fell = config.fallenLogsEnabled && random.nextFloat() < 0.18f && logs.size() <= 24;
+		BlockState fallen = null;
+		if (fell) {
+			BlockState sample = level.getBlockState(lowest);
+			if (sample.hasProperty(BlockStateProperties.AXIS)) {
+				fallen = sample.setValue(BlockStateProperties.AXIS, random.nextBoolean() ? Direction.Axis.X : Direction.Axis.Z);
+			}
+		}
+
+		for (BlockPos leaf : leaves) {
+			level.destroyBlock(leaf, false);
+		}
+		for (BlockPos log : logs) {
+			level.destroyBlock(log, false);
+		}
+		if (fallen != null) {
+			BlockPos ground = findSoil(level, lowest);
+			BlockPos place = ground != null ? ground.above() : lowest;
+			if (level.isEmptyBlock(place) || isReplaceableFoliage(level.getBlockState(place).getBlock())) {
+				level.setBlock(place, fallen, Block.UPDATE_ALL);
+			}
+		}
+		stats.treeDeaths++;
+	}
+
+	private static void floodTree(ServerLevel level, BlockPos origin, Species species, List<BlockPos> logs, List<BlockPos> leaves) {
+		ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+		Set<BlockPos> seen = new HashSet<>();
+		queue.add(origin);
+		seen.add(origin);
+		while (!queue.isEmpty() && logs.size() < MAX_TREE_LOGS) {
+			BlockPos current = queue.removeFirst();
+			BlockState state = level.getBlockState(current);
+			if (!species.matches(state.getBlock())) {
+				continue;
+			}
+			if (state.is(BlockTags.LOGS)) {
+				logs.add(current);
+			} else if (state.is(BlockTags.LEAVES)) {
+				if (leaves.size() < MAX_TREE_LEAVES) {
+					leaves.add(current);
+				}
+			} else {
+				continue;
+			}
+			for (Direction direction : Direction.values()) {
+				BlockPos next = current.relative(direction);
+				if (seen.add(next) && current.closerThan(origin, 12)) {
+					queue.add(next);
+				}
+			}
+		}
+	}
+
 	private static void handleSaplingPlant(ServerLevel level, BlockPos origin, Species species, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
 		Block plant = species.plant();
 		if (plant == null || plant == Blocks.AIR) {
@@ -161,6 +279,9 @@ public final class NatureActions {
 			return;
 		}
 		if (nearbySaplings(level, air) > 0) {
+			return;
+		}
+		if (!hasGrowSpace(level, air)) {
 			return;
 		}
 		BlockState sapling = plant.defaultBlockState();
@@ -193,20 +314,11 @@ public final class NatureActions {
 		level.setBlock(lower.above(), base.setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER), Block.UPDATE_ALL);
 	}
 
-	private static void destroyCover(ServerLevel level, BlockPos pos, BlockState state) {
-		if (state.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)) {
-			level.destroyBlock(pos, false);
-			return;
-		}
-		level.destroyBlock(pos, false);
-	}
-
 	private static int nearbyFoliage(ServerLevel level, BlockPos center) {
 		int count = 0;
 		for (int dx = -2; dx <= 2; dx++) {
 			for (int dz = -2; dz <= 2; dz++) {
-				Block block = level.getBlockState(center.offset(dx, 0, dz)).getBlock();
-				if (isReplaceableFoliage(block) || isFlower(block)) {
+				if (isReplaceableFoliage(level.getBlockState(center.offset(dx, 0, dz)).getBlock())) {
 					count++;
 				}
 			}
@@ -218,6 +330,9 @@ public final class NatureActions {
 		int count = 0;
 		for (int dx = -2; dx <= 2; dx++) {
 			for (int dz = -2; dz <= 2; dz++) {
+				if (dx == 0 && dz == 0) {
+					continue;
+				}
 				if (level.getBlockState(center.offset(dx, 0, dz)).getBlock() instanceof SaplingBlock) {
 					count++;
 				}
@@ -257,30 +372,12 @@ public final class NatureActions {
 		return block == Blocks.SHORT_GRASS || block == Blocks.FERN || block == Blocks.TALL_GRASS || block == Blocks.LARGE_FERN;
 	}
 
-	private static boolean isLivingCover(Block block) {
-		return isReplaceableFoliage(block) || isFlower(block);
-	}
-
-	private static boolean isFlower(Block block) {
-		return block == Blocks.DANDELION
-				|| block == Blocks.POPPY
-				|| block == Blocks.BLUE_ORCHID
-				|| block == Blocks.ALLIUM
-				|| block == Blocks.AZURE_BLUET
-				|| block == Blocks.RED_TULIP
-				|| block == Blocks.ORANGE_TULIP
-				|| block == Blocks.WHITE_TULIP
-				|| block == Blocks.PINK_TULIP
-				|| block == Blocks.OXEYE_DAISY
-				|| block == Blocks.CORNFLOWER
-				|| block == Blocks.LILY_OF_THE_VALLEY;
-	}
-
 	private static BlockPos offset(BlockPos origin, RandomSource random, int radius) {
-		int dx = random.nextInt(radius * 2 + 1) - radius;
-		int dz = random.nextInt(radius * 2 + 1) - radius;
-		int dy = random.nextInt(3) - 1;
-		return origin.offset(dx, dy, dz);
+		return origin.offset(
+				random.nextInt(radius * 2 + 1) - radius,
+				random.nextInt(3) - 1,
+				random.nextInt(radius * 2 + 1) - radius
+		);
 	}
 
 	private static boolean chance(RandomSource random, double probability) {
