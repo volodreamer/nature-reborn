@@ -20,9 +20,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Walks random player-nearby chunks so work is not locked to a scan-order rectangle.
- */
 public final class NatureTicker {
 	private static final int MAX_CHUNKS_PER_LEVEL_TICK = 24;
 
@@ -76,18 +73,19 @@ public final class NatureTicker {
 	private static void sampleChunk(ServerLevel level, LevelChunk chunk, NatureRebornConfig config, TickStats stats) {
 		int rolls = Math.max(0, config.natureRollsPerChunkTick);
 		ChunkPos pos = chunk.getPos();
-		int minY = level.getMinY();
-		int height = level.getHeight();
 		RandomSource random = level.getRandom();
 
 		for (int i = 0; i < rolls; i++) {
 			int x = pos.getMinBlockX() + random.nextInt(16);
 			int z = pos.getMinBlockZ() + random.nextInt(16);
-			int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-			hit(level, chunk, new BlockPos(x, surfaceY - 1, z), config, stats);
-			hit(level, chunk, new BlockPos(x, surfaceY, z), config, stats);
-			int y = minY + random.nextInt(Math.max(1, height));
-			hit(level, chunk, new BlockPos(x, y, z), config, stats);
+			int groundY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+			int canopyY = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+			hit(level, chunk, new BlockPos(x, groundY - 1, z), config, stats);
+			hit(level, chunk, new BlockPos(x, groundY, z), config, stats);
+			if (canopyY > groundY) {
+				int leafY = groundY + 1 + random.nextInt(Math.max(1, canopyY - groundY));
+				hit(level, chunk, new BlockPos(x, leafY, z), config, stats);
+			}
 		}
 	}
 

@@ -1,0 +1,27 @@
+{
+  "id": "flowers",
+  "kind": "plant",
+  "blocks": [
+    "minecraft:dandelion",
+    "minecraft:poppy",
+    "minecraft:blue_orchid",
+    "minecraft:allium",
+    "minecraft:azure_bluet",
+    "minecraft:red_tulip",
+    "minecraft:orange_tulip",
+    "minecraft:white_tulip",
+    "minecraft:pink_tulip",
+    "minecraft:oxeye_daisy",
+    "minecraft:cornflower",
+    "minecraft:lily_of_the_valley"
+  ],
+  "defaults": { "growth": 0.8, "spread": 0.7, "death": 0.25 },
+  "biomes": {
+    "minecraft:plains": { "growth": 1.2, "spread": 1.1, "death": 0.15 },
+    "minecraft:flower_forest": { "growth": 1.6, "spread": 1.5, "death": 0.08 },
+    "minecraft:sunflower_plains": { "growth": 1.4, "spread": 1.2, "death": 0.12 },
+    "minecraft:swamp": { "growth": 0.9, "spread": 0.7, "death": 0.2 },
+    "#minecraft:is_forest": { "growth": 1.0, "spread": 0.8, "death": 0.18 },
+    "#minecraft:is_desert": { "growth": 0.0, "spread": 0.0, "death": 3.0 }
+  }
+}
