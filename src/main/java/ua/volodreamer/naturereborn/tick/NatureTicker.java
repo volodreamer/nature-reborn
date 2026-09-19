@@ -86,7 +86,7 @@ public final class NatureTicker {
 		}
 	}
 
-	static boolean isDimensionEnabled(ServerLevel level, NatureRebornConfig config) {
+	public static boolean isDimensionEnabled(ServerLevel level, NatureRebornConfig config) {
 		if (level.dimension() == Level.OVERWORLD) {
 			return config.overworldEnabled;
 		}
