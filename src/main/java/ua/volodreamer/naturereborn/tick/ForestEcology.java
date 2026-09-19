@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.levelgen.Heightmap;
 import ua.volodreamer.naturereborn.species.Species;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.List;
 final class ForestEcology {
 	static final int INTERIOR_RADIUS = 6;
 	static final int INTERIOR_TRUNK_LIMIT = 2;
+	static final int MEGA_CLUSTER_DISTANCE = 8;
 	static final int FALLEN_MIN_TRUNK = 8;
 	static final int FALLEN_LENGTH_MIN = 3;
 	static final int FALLEN_LENGTH_MAX = 4;
@@ -75,6 +77,36 @@ final class ForestEcology {
 
 	static boolean isInterior(ServerLevel level, BlockPos groundOrAir) {
 		return nearbyTrunks(level, groundOrAir, INTERIOR_RADIUS) >= INTERIOR_TRUNK_LIMIT;
+	}
+
+	static boolean tooCloseForMega(ServerLevel level, BlockPos pos) {
+		if (nearbyTrunks(level, pos, MEGA_CLUSTER_DISTANCE) >= 1) {
+			return true;
+		}
+		return nearbySaplings(level, pos, MEGA_CLUSTER_DISTANCE) > 0;
+	}
+
+	static int nearbySaplings(ServerLevel level, BlockPos center, int radius) {
+		int count = 0;
+		for (int dx = -radius; dx <= radius; dx++) {
+			for (int dz = -radius; dz <= radius; dz++) {
+				if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+					continue;
+				}
+				if (level.getBlockState(center.offset(dx, 0, dz)).getBlock() instanceof SaplingBlock) {
+					count++;
+				}
+			}
+		}
+		return count;
+	}
+
+	static boolean isUnderCanopy(ServerLevel level, BlockPos pos) {
+		int canopy = level.getHeight(Heightmap.Types.MOTION_BLOCKING, pos.getX(), pos.getZ());
+		if (canopy > pos.getY() + 2) {
+			return true;
+		}
+		return level.getRawBrightness(pos, 0) < 8;
 	}
 
 	static double deathMultiplier(ServerLevel level, BlockPos logPos) {
@@ -137,6 +169,9 @@ final class ForestEcology {
 	}
 
 	static boolean tryPlaceTwoByTwo(ServerLevel level, BlockPos air, Block sapling) {
+		if (tooCloseForMega(level, air)) {
+			return false;
+		}
 		BlockPos[] starts = {
 				air,
 				air.west(),
@@ -332,7 +367,7 @@ final class ForestEcology {
 
 	static BlockPos edgePlantSpot(ServerLevel level, BlockPos root, RandomSource random) {
 		for (int attempt = 0; attempt < 8; attempt++) {
-			int dist = 5 + random.nextInt(4);
+			int dist = 8 + random.nextInt(4);
 			Direction dir = Direction.Plane.HORIZONTAL.getRandomDirection(random);
 			BlockPos probe = root.relative(dir, dist);
 			BlockPos soil = walkToSoil(level, probe);
@@ -346,7 +381,7 @@ final class ForestEcology {
 			if (level.getRawBrightness(air, 0) < 8) {
 				continue;
 			}
-			if (isInterior(level, air)) {
+			if (isInterior(level, air) || tooCloseForMega(level, air)) {
 				continue;
 			}
 			return air;
