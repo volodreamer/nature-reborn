@@ -5,6 +5,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.BoneMealItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoublePlantBlock;
@@ -170,7 +173,11 @@ public final class NatureActions {
 		}
 
 		if (canGrow && chance(random, BASE_SAPLING_GROW * rates.growth() * speed)) {
-			sapling.randomTick(state, level, pos, random);
+			ItemStack meal = new ItemStack(Items.BONE_MEAL);
+			boolean grew = BoneMealItem.growCrop(meal, level, pos);
+			if (!grew) {
+				level.scheduleTick(pos, sapling, 1);
+			}
 			if (!(level.getBlockState(pos).getBlock() instanceof SaplingBlock)) {
 				stats.saplingGrowths++;
 			}
