@@ -1,0 +1,22 @@
+{
+  "id": "acacia",
+  "kind": "tree",
+  "plant": "minecraft:acacia_sapling",
+  "blocks": [
+    "minecraft:acacia_log",
+    "minecraft:acacia_wood",
+    "minecraft:stripped_acacia_log",
+    "minecraft:stripped_acacia_wood",
+    "minecraft:acacia_leaves",
+    "minecraft:acacia_sapling"
+  ],
+  "defaults": { "growth": 0.85, "spread": 0.7, "death": 0.2 },
+  "biomes": {
+    "minecraft:savanna": { "growth": 1.2, "spread": 1.0, "death": 0.12 },
+    "minecraft:savanna_plateau": { "growth": 1.1, "spread": 0.9, "death": 0.14 },
+    "minecraft:windswept_savanna": { "growth": 1.0, "spread": 0.8, "death": 0.16 },
+    "#minecraft:is_savanna": { "growth": 1.15, "spread": 0.95, "death": 0.13 },
+    "#minecraft:is_forest": { "growth": 0.4, "spread": 0.2, "death": 0.6 },
+    "#minecraft:is_desert": { "growth": 0.15, "spread": 0.05, "death": 1.4 }
+  }
+}

@@ -5,14 +5,16 @@
   "blocks": [
     "minecraft:oak_log",
     "minecraft:oak_wood",
+    "minecraft:stripped_oak_log",
+    "minecraft:stripped_oak_wood",
     "minecraft:oak_leaves",
     "minecraft:oak_sapling"
   ],
-  "defaults": { "growth": 0.8, "spread": 0.7, "death": 0.35 },
+  "defaults": { "growth": 0.8, "spread": 0.65, "death": 0.16 },
   "biomes": {
-    "#minecraft:is_forest": { "growth": 1.2, "spread": 1.1, "death": 0.18 },
-    "minecraft:plains": { "growth": 1.0, "spread": 0.9, "death": 0.22 },
-    "minecraft:swamp": { "growth": 0.9, "spread": 0.8, "death": 0.28 },
+    "#minecraft:is_forest": { "growth": 1.15, "spread": 0.9, "death": 0.1 },
+    "minecraft:plains": { "growth": 1.0, "spread": 0.85, "death": 0.14 },
+    "minecraft:swamp": { "growth": 0.9, "spread": 0.75, "death": 0.18 },
     "#minecraft:is_desert": { "growth": 0.05, "spread": 0.0, "death": 3.0 },
     "#minecraft:is_ocean": { "growth": 0.0, "spread": 0.0, "death": 4.0 }
   }

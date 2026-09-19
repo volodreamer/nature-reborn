@@ -1,0 +1,18 @@
+{
+  "id": "spruce",
+  "kind": "tree",
+  "plant": "minecraft:spruce_sapling",
+  "blocks": [
+    "minecraft:spruce_log",
+    "minecraft:spruce_wood",
+    "minecraft:stripped_spruce_log",
+    "minecraft:stripped_spruce_wood",
+    "minecraft:spruce_leaves",
+    "minecraft:spruce_sapling"
+  ],
+  "defaults": { "growth": 0.85, "spread": 0.65, "death": 0.2 },
+  "biomes": {
+    "#minecraft:is_taiga": { "growth": 1.2, "spread": 0.9, "death": 0.12 },
+    "#minecraft:is_forest": { "growth": 0.8, "spread": 0.5, "death": 0.25 }
+  }
+}
