@@ -9,7 +9,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
-import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -154,7 +153,9 @@ public final class NatureActions {
 		}
 		if (state.is(BlockTags.LOGS) && chance(random, BASE_TREE_DEATH * rates.death() * speed)) {
 			killTree(level, pos, species, random, config, stats);
+			return;
 		}
+		handleSaplingPlant(level, pos, species, rates, random, speed, stats);
 	}
 
 	private static void handleSapling(ServerLevel level, BlockPos pos, BlockState state, SaplingBlock sapling, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
@@ -251,7 +252,7 @@ public final class NatureActions {
 			}
 			for (Direction direction : Direction.values()) {
 				BlockPos next = current.relative(direction);
-				if (seen.add(next) && current.closerThan(origin, 12)) {
+				if (seen.add(next) && current.distManhattan(origin) < 14) {
 					queue.add(next);
 				}
 			}
