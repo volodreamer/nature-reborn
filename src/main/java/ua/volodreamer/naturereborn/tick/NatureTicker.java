@@ -7,14 +7,14 @@ import ua.volodreamer.naturereborn.NatureReborn;
 import ua.volodreamer.naturereborn.config.NatureRebornConfig;
 
 /**
- * Budgeted per-world hook. Phase 0 only records that the server is ticking;
+ * Budgeted per-world hook. Phase 0 only gates dimensions;
  * plant/tree/crop scanners attach here later.
  */
 public final class NatureTicker {
 	private NatureTicker() {
 	}
 
-	public static void register(ServerTickEvents.EndWorldTick unusedSignatureHolder) {
+	public static void register() {
 		ServerTickEvents.END_WORLD_TICK.register(NatureTicker::onEndWorldTick);
 	}
 
