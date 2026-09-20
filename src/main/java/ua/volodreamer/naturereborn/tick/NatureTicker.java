@@ -82,6 +82,7 @@ public final class NatureTicker {
 			int canopyY = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
 			hit(level, chunk, new BlockPos(x, groundY - 1, z), config, stats);
 			hit(level, chunk, new BlockPos(x, groundY, z), config, stats);
+			hit(level, chunk, new BlockPos(x, groundY + 1, z), config, stats);
 			if (canopyY > groundY) {
 				int leafY = groundY + 1 + random.nextInt(Math.max(1, canopyY - groundY));
 				hit(level, chunk, new BlockPos(x, leafY, z), config, stats);
@@ -95,6 +96,10 @@ public final class NatureTicker {
 		}
 		stats.rolls++;
 		BlockState state = chunk.getBlockState(blockPos);
+		if (FireLogic.isFire(state)) {
+			FireLogic.tick(level, blockPos, state, config);
+			return;
+		}
 		Species species = SpeciesRegistry.match(state.getBlock());
 		if (species == null) {
 			return;

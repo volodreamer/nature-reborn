@@ -25,12 +25,12 @@ public final class FireLogic {
 		}
 		if (state.hasProperty(BlockStateProperties.AGE_15)) {
 			int age = state.getValue(BlockStateProperties.AGE_15);
-			int next = config.fireBurnUntilConsumed ? 0 : Math.max(0, age - 4);
+			int next = config.fireBurnUntilConsumed ? 0 : Math.max(0, age - 5);
 			if (next != age) {
 				level.setBlock(pos, state.setValue(BlockStateProperties.AGE_15, next), Block.UPDATE_CLIENTS);
 			}
 		}
-		if (level.getRandom().nextFloat() < 0.35f) {
+		if (level.getRandom().nextFloat() < 0.28f) {
 			nudgeSpread(level, pos);
 		}
 	}
@@ -39,21 +39,11 @@ public final class FireLogic {
 		Direction dir = Direction.Plane.HORIZONTAL.getRandomDirection(level.getRandom());
 		BlockPos target = pos.relative(dir);
 		if (!level.isEmptyBlock(target)) {
-			target = target.above();
+			target = pos.relative(dir).above();
 		}
-		if (!level.isEmptyBlock(target)) {
+		if (!level.isEmptyBlock(target) && !ForestEcology.isFoliage(level.getBlockState(target).getBlock())) {
 			return;
 		}
-		BlockState below = level.getBlockState(target.below());
-		if (!below.isAir() && below.getBlock() != Blocks.FIRE && below.getBlock() != Blocks.SOUL_FIRE) {
-			if (FireBlock.canSurvive ? false : below.isFlammable(level, target.below(), Direction.UP)) {
-				// placeholder avoided
-			}
-		}
-		tryPlace(level, target);
-	}
-
-	private static void tryPlace(ServerLevel level, BlockPos target) {
 		BlockState fire = Blocks.FIRE.defaultBlockState();
 		if (fire.canSurvive(level, target)) {
 			level.setBlock(target, fire, Block.UPDATE_ALL);
