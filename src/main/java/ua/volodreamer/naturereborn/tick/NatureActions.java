@@ -63,7 +63,7 @@ public final class NatureActions {
 				}
 			}
 			case PLANT -> {
-				if (config.plantsEnabled) {
+				if (config.plantsEnabled && !WildPlants.tick(level, pos, state, rates, random, speed, stats)) {
 					handleFlower(level, pos, state, rates, random, speed, stats);
 				}
 			}
