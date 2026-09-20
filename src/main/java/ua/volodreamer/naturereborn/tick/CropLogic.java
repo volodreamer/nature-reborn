@@ -2,6 +2,7 @@ package ua.volodreamer.naturereborn.tick;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -10,7 +11,10 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.FlowerBlock;
 import net.minecraft.world.level.block.NetherWartBlock;
+import net.minecraft.world.level.block.TallFlowerBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import ua.volodreamer.naturereborn.config.NatureRebornConfig;
@@ -18,10 +22,10 @@ import ua.volodreamer.naturereborn.species.BiomeRates;
 import ua.volodreamer.naturereborn.species.Species;
 
 public final class CropLogic {
-	private static final double BASE_SPREAD = 0.045;
-	private static final double BASE_SENESCE = 0.012;
-	private static final double BASE_GROW = 0.08;
+	private static final double BASE_SENESCE = 0.006;
+	private static final double BASE_GROW = 0.1;
 	private static final int MIN_LIGHT = 9;
+	private static final int SPREAD_TRIES = 4;
 
 	private CropLogic() {
 	}
@@ -36,23 +40,22 @@ public final class CropLogic {
 			return;
 		}
 
-		if (!isMature(state) && chance(random, BASE_GROW * rates.growth() * speed)) {
-			growOneStage(level, pos, state);
-			stats.cropGrowths++;
-			return;
-		}
-
 		if (!isMature(state)) {
+			if (chance(random, BASE_GROW * rates.growth() * speed)) {
+				growOneStage(level, pos, state);
+				stats.cropGrowths++;
+			}
 			return;
 		}
 
-		if (config.cropSenescenceEnabled && chance(random, BASE_SENESCE * rates.death() * speed * config.cropMatureLifeMultiplier / 3.0)) {
+		int attempts = Math.max(1, (int) Math.ceil(SPREAD_TRIES * Math.min(speed, 3.0) * Math.max(0.35, rates.spread())));
+		boolean spread = false;
+		for (int i = 0; i < attempts && !spread; i++) {
+			spread = trySpread(level, pos, species, config, random, stats);
+		}
+
+		if (config.cropSenescenceEnabled && spread && chance(random, BASE_SENESCE * rates.death() * speed)) {
 			senesce(level, pos, state, species, config, random, stats);
-			return;
-		}
-
-		if (chance(random, BASE_SPREAD * rates.spread() * speed)) {
-			spread(level, pos, species, config, random, stats);
 		}
 	}
 
@@ -113,32 +116,67 @@ public final class CropLogic {
 			level.setBlock(pos, seedState(crop), Block.UPDATE_ALL);
 			stats.cropReplants++;
 		}
-		if (chance(random, 0.45)) {
-			spread(level, pos, species, config, random, stats);
-		}
+		trySpread(level, pos, species, config, random, stats);
 	}
 
-	private static void spread(ServerLevel level, BlockPos origin, Species species, NatureRebornConfig config, RandomSource random, TickStats stats) {
-		Block crop = species.matches(origin.equals(origin) ? cropBlock(species) : cropBlock(species)) ? cropBlock(species) : cropBlock(species);
-		crop = cropBlock(species);
+	private static boolean trySpread(ServerLevel level, BlockPos origin, Species species, NatureRebornConfig config, RandomSource random, TickStats stats) {
+		Block crop = cropBlock(species);
 		int radius = Math.max(1, config.cropSpreadRadius);
-		BlockPos ground = origin.offset(
-				random.nextInt(radius * 2 + 1) - radius,
-				random.nextInt(3) - 1,
-				random.nextInt(radius * 2 + 1) - radius
-		).below();
-		BlockPos air = ground.above();
-		if (!prepareSoil(level, ground, crop, config)) {
-			return;
+		for (int attempt = 0; attempt < 6; attempt++) {
+			BlockPos target = origin.offset(
+					random.nextInt(radius * 2 + 1) - radius,
+					0,
+					random.nextInt(radius * 2 + 1) - radius
+			);
+			if (target.equals(origin)) {
+				continue;
+			}
+			BlockPos ground = target.below();
+			if (!level.getBlockState(ground).getBlock().equals(Blocks.FARMLAND)
+					&& !level.getBlockState(ground).getBlock().equals(Blocks.GRASS_BLOCK)
+					&& !level.getBlockState(ground).getBlock().equals(Blocks.DIRT)
+					&& !level.getBlockState(ground).getBlock().equals(Blocks.COARSE_DIRT)
+					&& !level.getBlockState(ground).getBlock().equals(Blocks.ROOTED_DIRT)
+					&& !level.getBlockState(ground).getBlock().equals(Blocks.SOUL_SAND)
+					&& !level.getBlockState(ground).getBlock().equals(Blocks.SOUL_SOIL)) {
+				ground = target;
+				target = ground.above();
+			}
+			BlockState cover = level.getBlockState(target);
+			if (!canOccupy(cover, random)) {
+				continue;
+			}
+			if (!prepareSoil(level, ground, crop, config)) {
+				continue;
+			}
+			if (!isNetherCrop(crop) && level.getRawBrightness(target, 0) < MIN_LIGHT) {
+				continue;
+			}
+			if (cover.getBlock() instanceof DoublePlantBlock) {
+				level.removeBlock(target.above(), false);
+			}
+			level.setBlock(target, seedState(crop), Block.UPDATE_ALL);
+			stats.cropSpreads++;
+			return true;
 		}
-		if (!level.isEmptyBlock(air) && !ForestEcology.isFoliage(level.getBlockState(air).getBlock())) {
-			return;
+		return false;
+	}
+
+	private static boolean canOccupy(BlockState cover, RandomSource random) {
+		if (cover.isAir()) {
+			return true;
 		}
-		if (!isNetherCrop(crop) && level.getRawBrightness(air, 0) < MIN_LIGHT) {
-			return;
+		Block block = cover.getBlock();
+		boolean soft = ForestEcology.isFoliage(block)
+				|| block instanceof FlowerBlock
+				|| block instanceof TallFlowerBlock
+				|| cover.is(BlockTags.FLOWERS)
+				|| cover.is(BlockTags.SMALL_FLOWERS)
+				|| block == Blocks.PINK_PETALS;
+		if (!soft) {
+			return false;
 		}
-		level.setBlock(air, seedState(crop), Block.UPDATE_ALL);
-		stats.cropSpreads++;
+		return random.nextBoolean();
 	}
 
 	private static Block cropBlock(Species species) {
