@@ -122,41 +122,51 @@ public final class CropLogic {
 	private static boolean trySpread(ServerLevel level, BlockPos origin, Species species, NatureRebornConfig config, RandomSource random, TickStats stats) {
 		Block crop = cropBlock(species);
 		int radius = Math.max(1, config.cropSpreadRadius);
-		for (int attempt = 0; attempt < 6; attempt++) {
-			BlockPos target = origin.offset(
-					random.nextInt(radius * 2 + 1) - radius,
-					0,
-					random.nextInt(radius * 2 + 1) - radius
-			);
-			if (target.equals(origin)) {
+		for (int attempt = 0; attempt < 8; attempt++) {
+			int dx = random.nextInt(radius * 2 + 1) - radius;
+			int dz = random.nextInt(radius * 2 + 1) - radius;
+			if (dx == 0 && dz == 0) {
 				continue;
 			}
-			BlockPos ground = target.below();
-			if (!isSoil(level.getBlockState(ground).getBlock())) {
-				ground = target;
-				target = ground.above();
+			int[] heights = {0, 1, -1};
+			shuffle(heights, random);
+			for (int dy : heights) {
+				BlockPos target = origin.offset(dx, dy, dz);
+				BlockPos ground = target.below();
+				if (!isSoil(level.getBlockState(ground).getBlock())) {
+					continue;
+				}
+				if (blockedByBarrier(level, origin, target)) {
+					continue;
+				}
+				BlockState cover = level.getBlockState(target);
+				if (!canOccupy(cover, random)) {
+					continue;
+				}
+				if (!prepareSoil(level, ground, crop, config)) {
+					continue;
+				}
+				if (!isNetherCrop(crop) && level.getRawBrightness(target, 0) < MIN_LIGHT) {
+					continue;
+				}
+				if (cover.getBlock() instanceof DoublePlantBlock) {
+					level.removeBlock(target.above(), false);
+				}
+				level.setBlock(target, seedState(crop), Block.UPDATE_ALL);
+				stats.cropSpreads++;
+				return true;
 			}
-			if (blockedByBarrier(level, origin, target)) {
-				continue;
-			}
-			BlockState cover = level.getBlockState(target);
-			if (!canOccupy(cover, random)) {
-				continue;
-			}
-			if (!prepareSoil(level, ground, crop, config)) {
-				continue;
-			}
-			if (!isNetherCrop(crop) && level.getRawBrightness(target, 0) < MIN_LIGHT) {
-				continue;
-			}
-			if (cover.getBlock() instanceof DoublePlantBlock) {
-				level.removeBlock(target.above(), false);
-			}
-			level.setBlock(target, seedState(crop), Block.UPDATE_ALL);
-			stats.cropSpreads++;
-			return true;
 		}
 		return false;
+	}
+
+	private static void shuffle(int[] values, RandomSource random) {
+		for (int i = values.length - 1; i > 0; i--) {
+			int j = random.nextInt(i + 1);
+			int tmp = values[i];
+			values[i] = values[j];
+			values[j] = tmp;
+		}
 	}
 
 	private static boolean isSoil(Block block) {
