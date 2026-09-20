@@ -69,6 +69,11 @@ public final class NatureRebornConfigScreen {
 				.setDefaultValue(true)
 				.setSaveConsumer(value -> NatureReborn.config().plantsEnabled = value)
 				.build());
+		plants.addEntry(entries.startBooleanToggle(Component.literal("Mossy weathering"), current.weatheringEnabled)
+				.setDefaultValue(true)
+				.setTooltip(Component.literal("Cobble and stone bricks become mossy next to water, rain, or moss. Villages are skipped."))
+				.setSaveConsumer(value -> NatureReborn.config().weatheringEnabled = value)
+				.build());
 
 		ConfigCategory crops = builder.getOrCreateCategory(Component.literal("Crops"));
 		crops.addEntry(entries.startBooleanToggle(Component.literal("Crop systems"), current.cropsEnabled)
