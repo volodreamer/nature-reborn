@@ -15,7 +15,9 @@ import ua.volodreamer.naturereborn.NatureReborn;
 import ua.volodreamer.naturereborn.config.NatureRebornConfig;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public final class Lumberjack {
@@ -45,30 +47,68 @@ public final class Lumberjack {
 			return;
 		}
 
+		List<BlockPos> logs = new ArrayList<>();
+		List<BlockPos> leaves = new ArrayList<>();
+		collect(server, origin, logs, leaves, config);
+		if (!isNaturalTree(server, origin, logs, leaves)) {
+			return;
+		}
+
+		for (BlockPos log : logs) {
+			server.destroyBlock(log, true, player);
+		}
+		for (BlockPos leaf : leaves) {
+			server.destroyBlock(leaf, true, player);
+		}
+	}
+
+	private static boolean isNaturalTree(ServerLevel level, BlockPos origin, List<BlockPos> logs, List<BlockPos> leaves) {
+		if (leaves.size() < 8) {
+			return false;
+		}
+		int tallest = ForestEcology.trunkColumnHeight(level, origin);
+		for (BlockPos log : logs) {
+			tallest = Math.max(tallest, ForestEcology.trunkColumnHeight(level, log));
+		}
+		return tallest >= 4 || leaves.size() >= 12;
+	}
+
+	private static void collect(ServerLevel level, BlockPos origin, List<BlockPos> logs, List<BlockPos> leaves, NatureRebornConfig config) {
 		ArrayDeque<BlockPos> queue = new ArrayDeque<>();
 		Set<BlockPos> seen = new HashSet<>();
 		queue.add(origin);
 		seen.add(origin);
-		int logs = 0;
-		int leaves = 0;
-		while (!queue.isEmpty() && logs < config.lumberjackMaxLogs) {
+		while (!queue.isEmpty() && logs.size() < config.lumberjackMaxLogs) {
 			BlockPos current = queue.removeFirst();
 			for (Direction direction : Direction.values()) {
 				BlockPos next = current.relative(direction);
-				if (!seen.add(next) || current.distManhattan(origin) > 28) {
+				if (!seen.add(next) || current.distManhattan(origin) > 24) {
 					continue;
 				}
-				BlockState state = server.getBlockState(next);
+				BlockState state = level.getBlockState(next);
 				if (state.is(BlockTags.LOGS)) {
-					server.destroyBlock(next, true, player);
-					logs++;
+					if (isDecorative(level, next)) {
+						continue;
+					}
+					logs.add(next);
 					queue.add(next);
-				} else if (state.is(BlockTags.LEAVES) && leaves < config.lumberjackMaxLeaves) {
-					server.destroyBlock(next, true, player);
-					leaves++;
+				} else if (state.is(BlockTags.LEAVES) && leaves.size() < config.lumberjackMaxLeaves) {
+					leaves.add(next);
 					queue.add(next);
 				}
 			}
 		}
+	}
+
+	private static boolean isDecorative(ServerLevel level, BlockPos pos) {
+		if (ForestEcology.trunkColumnHeight(level, pos) >= 3) {
+			return false;
+		}
+		for (Direction direction : Direction.values()) {
+			if (level.getBlockState(pos.relative(direction)).is(BlockTags.LEAVES)) {
+				return false;
+			}
+		}
+		return true;
 	}
 }

@@ -132,15 +132,12 @@ public final class CropLogic {
 				continue;
 			}
 			BlockPos ground = target.below();
-			if (!level.getBlockState(ground).getBlock().equals(Blocks.FARMLAND)
-					&& !level.getBlockState(ground).getBlock().equals(Blocks.GRASS_BLOCK)
-					&& !level.getBlockState(ground).getBlock().equals(Blocks.DIRT)
-					&& !level.getBlockState(ground).getBlock().equals(Blocks.COARSE_DIRT)
-					&& !level.getBlockState(ground).getBlock().equals(Blocks.ROOTED_DIRT)
-					&& !level.getBlockState(ground).getBlock().equals(Blocks.SOUL_SAND)
-					&& !level.getBlockState(ground).getBlock().equals(Blocks.SOUL_SOIL)) {
+			if (!isSoil(level.getBlockState(ground).getBlock())) {
 				ground = target;
 				target = ground.above();
+			}
+			if (blockedByBarrier(level, origin, target)) {
+				continue;
 			}
 			BlockState cover = level.getBlockState(target);
 			if (!canOccupy(cover, random)) {
@@ -160,6 +157,41 @@ public final class CropLogic {
 			return true;
 		}
 		return false;
+	}
+
+	private static boolean isSoil(Block block) {
+		return block == Blocks.FARMLAND
+				|| block == Blocks.GRASS_BLOCK
+				|| block == Blocks.DIRT
+				|| block == Blocks.COARSE_DIRT
+				|| block == Blocks.ROOTED_DIRT
+				|| block == Blocks.SOUL_SAND
+				|| block == Blocks.SOUL_SOIL;
+	}
+
+	static boolean blockedByBarrier(ServerLevel level, BlockPos from, BlockPos to) {
+		int dx = to.getX() - from.getX();
+		int dz = to.getZ() - from.getZ();
+		int steps = Math.max(Math.abs(dx), Math.abs(dz));
+		if (steps <= 0) {
+			return isBarrier(level.getBlockState(from)) || isBarrier(level.getBlockState(from.below()));
+		}
+		for (int i = 1; i <= steps; i++) {
+			int x = from.getX() + dx * i / steps;
+			int z = from.getZ() + dz * i / steps;
+			BlockPos mid = new BlockPos(x, from.getY(), z);
+			if (isBarrier(level.getBlockState(mid)) || isBarrier(level.getBlockState(mid.below())) || isBarrier(level.getBlockState(mid.above()))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean isBarrier(BlockState state) {
+		return state.is(BlockTags.FENCES)
+				|| state.is(BlockTags.FENCE_GATES)
+				|| state.is(BlockTags.WALLS)
+				|| state.getBlock() == Blocks.IRON_BARS;
 	}
 
 	private static boolean canOccupy(BlockState cover, RandomSource random) {
