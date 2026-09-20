@@ -2,7 +2,6 @@ package ua.volodreamer.naturereborn.tick;
 
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
@@ -16,8 +15,10 @@ import ua.volodreamer.naturereborn.config.NatureRebornConfig;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public final class Lumberjack {
@@ -48,6 +49,9 @@ public final class Lumberjack {
 		if (!server.isEmptyBlock(origin)) {
 			return;
 		}
+		if (VillageZones.inVillage(server, origin)) {
+			return;
+		}
 		ItemStack tool = player.getMainHandItem();
 		if (tool.isEmpty() || !tool.is(ItemTags.AXES)) {
 			return;
@@ -55,8 +59,11 @@ public final class Lumberjack {
 
 		List<BlockPos> logs = new ArrayList<>();
 		collectLogs(server, origin, logs, config.lumberjackMaxLogs);
+		if (looksLikeBuild(server, logs)) {
+			return;
+		}
 		List<BlockPos> leaves = collectLeaves(server, logs, origin, config.lumberjackMaxLeaves);
-		if (!isNaturalTree(server, origin, logs, leaves)) {
+		if (leaves.size() < 10) {
 			return;
 		}
 
@@ -68,15 +75,27 @@ public final class Lumberjack {
 		}
 	}
 
-	private static boolean isNaturalTree(ServerLevel level, BlockPos origin, List<BlockPos> logs, List<BlockPos> leaves) {
-		if (leaves.size() < 6 && logs.size() < 4) {
-			return false;
+	private static boolean looksLikeBuild(ServerLevel level, List<BlockPos> logs) {
+		if (logs.isEmpty()) {
+			return true;
 		}
-		int tallest = ForestEcology.trunkColumnHeight(level, origin);
+		Map<Integer, Integer> byY = new HashMap<>();
+		int villageHits = 0;
 		for (BlockPos log : logs) {
-			tallest = Math.max(tallest, ForestEcology.trunkColumnHeight(level, log));
+			byY.merge(log.getY(), 1, Integer::sum);
+			if (VillageZones.inVillage(level, log)) {
+				villageHits++;
+			}
 		}
-		return leaves.size() >= 6 || tallest >= 4 || logs.size() >= 8;
+		if (villageHits >= 3) {
+			return true;
+		}
+		for (int count : byY.values()) {
+			if (count >= 6) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static void collectLogs(ServerLevel level, BlockPos origin, List<BlockPos> logs, int maxLogs) {
@@ -93,7 +112,7 @@ public final class Lumberjack {
 							continue;
 						}
 						BlockPos next = current.offset(dx, dy, dz);
-						if (!seen.add(next) || current.distManhattan(origin) > 28) {
+						if (!seen.add(next) || next.distManhattan(origin) > 40) {
 							continue;
 						}
 						if (!level.getBlockState(next).is(BlockTags.LOGS)) {
@@ -113,9 +132,9 @@ public final class Lumberjack {
 		List<BlockPos> seeds = new ArrayList<>(logs);
 		seeds.add(origin);
 		for (BlockPos log : seeds) {
-			for (int dx = -3; dx <= 3; dx++) {
-				for (int dy = -2; dy <= 4; dy++) {
-					for (int dz = -3; dz <= 3; dz++) {
+			for (int dx = -4; dx <= 4; dx++) {
+				for (int dy = -2; dy <= 5; dy++) {
+					for (int dz = -4; dz <= 4; dz++) {
 						BlockPos pos = log.offset(dx, dy, dz);
 						if (!seen.add(pos) || leaves.size() >= maxLeaves) {
 							continue;

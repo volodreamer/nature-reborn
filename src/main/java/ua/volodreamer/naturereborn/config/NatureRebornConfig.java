@@ -13,6 +13,9 @@ import java.nio.file.Path;
 
 public final class NatureRebornConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	private static final int SCHEMA = 2;
+
+	public int configSchema = SCHEMA;
 
 	public boolean masterEnabled = true;
 
@@ -34,10 +37,11 @@ public final class NatureRebornConfig {
 	public boolean autoReplantEnabled = true;
 	public boolean autoReplantAllSources = true;
 
-	public boolean lumberjackEnabled = true;
+	/** Experimental. Off by default — can still eat builds next to trees. */
+	public boolean lumberjackEnabled = false;
 	public boolean lumberjackSneakBypass = true;
-	public int lumberjackMaxLogs = 256;
-	public int lumberjackMaxLeaves = 1024;
+	public int lumberjackMaxLogs = 320;
+	public int lumberjackMaxLeaves = 1400;
 
 	public boolean fireEnabled = true;
 	public boolean fireBurnUntilConsumed = false;
@@ -75,7 +79,15 @@ public final class NatureRebornConfig {
 		}
 		try (Reader reader = Files.newBufferedReader(file)) {
 			NatureRebornConfig loaded = GSON.fromJson(reader, NatureRebornConfig.class);
-			return loaded != null ? loaded : defaults();
+			if (loaded == null) {
+				return defaults();
+			}
+			if (loaded.configSchema < SCHEMA) {
+				loaded.lumberjackEnabled = false;
+				loaded.configSchema = SCHEMA;
+				save(loaded);
+			}
+			return loaded;
 		} catch (IOException e) {
 			NatureReborn.LOGGER.error("Failed to read config, using defaults", e);
 			return defaults();
