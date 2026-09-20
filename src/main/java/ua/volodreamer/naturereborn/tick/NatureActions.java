@@ -91,13 +91,13 @@ public final class NatureActions {
 			return;
 		}
 
-		if (shaded) {
+		if (shaded || VillageZones.inVillage(level, pos)) {
 			return;
 		}
 
 		if (block == Blocks.GRASS_BLOCK && chance(random, BASE_GRASS_SPREAD * rates.spread() * speed)) {
 			BlockPos target = offset(pos, random, SPREAD_RADIUS);
-			if (canBecomeGrass(level, target) && !ForestEcology.isUnderCanopy(level, target.above())) {
+			if (canBecomeGrass(level, target) && !ForestEcology.isUnderCanopy(level, target.above()) && !VillageZones.inVillage(level, target)) {
 				level.setBlock(target, Blocks.GRASS_BLOCK.defaultBlockState(), Block.UPDATE_ALL);
 				stats.grassSpreads++;
 			}
@@ -142,14 +142,14 @@ public final class NatureActions {
 			stats.flowerDeaths++;
 			return;
 		}
-		if (shaded) {
+		if (shaded || VillageZones.inVillage(level, pos)) {
 			return;
 		}
 		if (!chance(random, BASE_FLOWER_SPREAD * rates.spread() * speed)) {
 			return;
 		}
 		BlockPos ground = offset(pos.below(), random, SPREAD_RADIUS);
-		if (isProtectedSurface(level.getBlockState(ground))) {
+		if (isProtectedSurface(level.getBlockState(ground)) || VillageZones.inVillage(level, ground)) {
 			return;
 		}
 		if (!isPlantableSoil(level.getBlockState(ground).getBlock())) {
@@ -213,6 +213,13 @@ public final class NatureActions {
 	}
 
 	private static void handleSapling(ServerLevel level, BlockPos pos, BlockState state, SaplingBlock sapling, Species species, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
+		if (VillageZones.inVillage(level, pos)) {
+			if (chance(random, BASE_SAPLING_DEATH * rates.death() * speed * 4.0)) {
+				level.destroyBlock(pos, false);
+				stats.saplingDeaths++;
+			}
+			return;
+		}
 		boolean twoByTwo = ForestEcology.isTwoByTwoSapling(level, pos);
 		if (!twoByTwo && ForestEcology.needsTwoByTwo(species)) {
 			if (!ForestEcology.tooCloseForMega(level, pos) && ForestEcology.tryPlaceTwoByTwo(level, pos, sapling)) {
@@ -306,7 +313,7 @@ public final class NatureActions {
 
 		if (species.plant() != null && species.plant() != Blocks.AIR && random.nextFloat() < 0.22f) {
 			BlockPos edge = ForestEcology.edgePlantSpot(level, lowest, random);
-			if (edge != null) {
+			if (edge != null && !VillageZones.inVillage(level, edge)) {
 				if (ForestEcology.needsTwoByTwo(species)) {
 					if (ForestEcology.tryPlaceTwoByTwo(level, edge, species.plant())) {
 						stats.saplingsPlanted += 4;
@@ -363,6 +370,9 @@ public final class NatureActions {
 		BlockPos probe = offset(origin, random, SPREAD_RADIUS);
 		BlockPos ground = ForestEcology.walkToSoil(level, probe);
 		if (ground == null || ForestEcology.isProtected(level.getBlockState(ground))) {
+			return;
+		}
+		if (VillageZones.inVillage(level, ground)) {
 			return;
 		}
 		BlockPos air = ground.above();
