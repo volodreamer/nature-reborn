@@ -3,6 +3,7 @@ package ua.volodreamer.naturereborn.tick;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
@@ -17,10 +18,16 @@ import ua.volodreamer.naturereborn.config.NatureRebornConfig;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class Lumberjack {
+	private static final long WINDOW_TICKS = 200;
+	private static final Map<ChopKey, ChopState> CHOPS = new ConcurrentHashMap<>();
+
 	private Lumberjack() {
 	}
 
@@ -54,12 +61,52 @@ public final class Lumberjack {
 			return;
 		}
 
+		BlockPos root = rootOf(origin, logs);
+		long now = server.getGameTime();
+		prune(now);
+		ChopKey key = new ChopKey(server.dimension(), root.asLong());
+		ChopState state = CHOPS.compute(key, (k, prev) -> {
+			if (prev == null || now - prev.lastTick > WINDOW_TICKS) {
+				return new ChopState(1, now);
+			}
+			return new ChopState(prev.count + 1, now);
+		});
+
+		if (state.count < 2) {
+			dropNearbyLeaves(server, origin, player, 2);
+			return;
+		}
+
+		CHOPS.remove(key);
 		for (BlockPos log : logs) {
 			server.destroyBlock(log, true, player);
 		}
 		for (BlockPos leaf : leaves) {
 			server.destroyBlock(leaf, true, player);
 		}
+	}
+
+	private static void dropNearbyLeaves(ServerLevel level, BlockPos origin, Player player, int radius) {
+		for (int dx = -radius; dx <= radius; dx++) {
+			for (int dy = -1; dy <= 3; dy++) {
+				for (int dz = -radius; dz <= radius; dz++) {
+					BlockPos pos = origin.offset(dx, dy, dz);
+					if (level.getBlockState(pos).is(BlockTags.LEAVES)) {
+						level.destroyBlock(pos, true, player);
+					}
+				}
+			}
+		}
+	}
+
+	private static BlockPos rootOf(BlockPos origin, List<BlockPos> logs) {
+		BlockPos lowest = origin;
+		for (BlockPos log : logs) {
+			if (log.getY() < lowest.getY() || (log.getY() == lowest.getY() && log.asLong() < lowest.asLong())) {
+				lowest = log;
+			}
+		}
+		return lowest;
 	}
 
 	private static boolean isNaturalTree(ServerLevel level, BlockPos origin, List<BlockPos> logs, List<BlockPos> leaves) {
@@ -110,5 +157,21 @@ public final class Lumberjack {
 			}
 		}
 		return true;
+	}
+
+	private static void prune(long now) {
+		Iterator<Map.Entry<ChopKey, ChopState>> it = CHOPS.entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry<ChopKey, ChopState> entry = it.next();
+			if (now - entry.getValue().lastTick > WINDOW_TICKS) {
+				it.remove();
+			}
+		}
+	}
+
+	private record ChopKey(ResourceKey<Level> dimension, long root) {
+	}
+
+	private record ChopState(int count, long lastTick) {
 	}
 }
