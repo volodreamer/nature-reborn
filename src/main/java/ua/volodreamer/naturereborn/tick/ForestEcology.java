@@ -54,6 +54,40 @@ final class ForestEcology {
 		return height;
 	}
 
+	static boolean hasAnyLeavesNear(ServerLevel level, BlockPos pos, int radius) {
+		for (int dx = -radius; dx <= radius; dx++) {
+			for (int dy = 0; dy <= radius + 4; dy++) {
+				for (int dz = -radius; dz <= radius; dz++) {
+					if (level.getBlockState(pos.offset(dx, dy, dz)).is(BlockTags.LEAVES)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	static boolean clearLeaflessTrunk(ServerLevel level, BlockPos base) {
+		if (!isTrunkBase(level, base)) {
+			return false;
+		}
+		int height = trunkColumnHeight(level, base);
+		if (height < 2 || height > 18) {
+			return false;
+		}
+		if (hasAnyLeavesNear(level, base, 4)) {
+			return false;
+		}
+		BlockPos.MutableBlockPos cursor = base.mutable();
+		for (int i = 0; i < height; i++) {
+			if (level.getBlockState(cursor).is(BlockTags.LOGS)) {
+				level.destroyBlock(cursor, false);
+			}
+			cursor.move(0, 1, 0);
+		}
+		return true;
+	}
+
 	static int nearbyTrunks(ServerLevel level, BlockPos center, int radius) {
 		int count = 0;
 		for (int dx = -radius; dx <= radius; dx++) {
@@ -381,7 +415,7 @@ final class ForestEcology {
 			if (level.getRawBrightness(air, 0) < 8) {
 				continue;
 			}
-			if (isInterior(level, air) || tooCloseForMega(level, air)) {
+			if (isInterior(level, air) || tooCloseForMega(level, air) || VillageZones.inVillage(level, air)) {
 				continue;
 			}
 			return air;
