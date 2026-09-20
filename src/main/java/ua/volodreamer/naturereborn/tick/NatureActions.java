@@ -39,6 +39,8 @@ public final class NatureActions {
 	private static final int MIN_LIGHT = 8;
 	private static final int MAX_TREE_LOGS = 220;
 	private static final int MAX_TREE_LEAVES = 400;
+	private static final int MIN_TREE_TRUNK = 4;
+	private static final int MIN_TREE_LEAVES = 8;
 
 	private static final Block[] GROUND_COVER = {
 			Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS,
@@ -170,14 +172,44 @@ public final class NatureActions {
 			handleSapling(level, pos, state, sapling, species, rates, random, speed, stats);
 			return;
 		}
-		if (state.is(BlockTags.LOGS) && ForestEcology.isTrunkBase(level, pos)) {
+		if (state.is(BlockTags.LOGS) && ForestEcology.isTrunkBase(level, pos) && isNaturalTreeStart(level, pos)) {
 			double deathChance = BASE_TREE_DEATH * rates.death() * speed * ForestEcology.deathMultiplier(level, pos);
 			if (chance(random, deathChance)) {
 				killTree(level, pos, species, random, config, stats);
 				return;
 			}
 		}
-		handleSaplingPlant(level, pos, species, rates, random, speed, stats);
+		if (state.is(BlockTags.LEAVES) || isNaturalTreeStart(level, pos)) {
+			handleSaplingPlant(level, pos, species, rates, random, speed, stats);
+		}
+	}
+
+	private static boolean isNaturalTreeStart(ServerLevel level, BlockPos pos) {
+		if (!level.getBlockState(pos).is(BlockTags.LOGS)) {
+			return false;
+		}
+		return ForestEcology.trunkColumnHeight(level, pos) >= MIN_TREE_TRUNK || hasNearbyLeaves(level, pos);
+	}
+
+	private static boolean hasNearbyLeaves(ServerLevel level, BlockPos pos) {
+		for (Direction direction : Direction.values()) {
+			if (level.getBlockState(pos.relative(direction)).is(BlockTags.LEAVES)) {
+				return true;
+			}
+		}
+		for (int dy = 1; dy <= 6; dy++) {
+			if (level.getBlockState(pos.above(dy)).is(BlockTags.LEAVES)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean isDecorativeWood(ServerLevel level, BlockPos pos) {
+		if (!level.getBlockState(pos).is(BlockTags.LOGS)) {
+			return false;
+		}
+		return ForestEcology.trunkColumnHeight(level, pos) < 3 && !hasNearbyLeaves(level, pos);
 	}
 
 	private static void handleSapling(ServerLevel level, BlockPos pos, BlockState state, SaplingBlock sapling, Species species, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
@@ -241,7 +273,11 @@ public final class NatureActions {
 		List<BlockPos> logs = new ArrayList<>();
 		List<BlockPos> leaves = new ArrayList<>();
 		floodTree(level, origin, species, logs, leaves);
-		if (logs.size() < 4) {
+		int tallest = 0;
+		for (BlockPos log : logs) {
+			tallest = Math.max(tallest, ForestEcology.trunkColumnHeight(level, log));
+		}
+		if (logs.size() < 4 || (leaves.size() < MIN_TREE_LEAVES && tallest < MIN_TREE_TRUNK)) {
 			return;
 		}
 
@@ -296,6 +332,9 @@ public final class NatureActions {
 				continue;
 			}
 			if (state.is(BlockTags.LOGS) && species.matches(state.getBlock())) {
+				if (isDecorativeWood(level, current)) {
+					continue;
+				}
 				logs.add(current);
 			} else if (state.is(BlockTags.LEAVES) && species.matches(state.getBlock())) {
 				if (leaves.size() < MAX_TREE_LEAVES) {
