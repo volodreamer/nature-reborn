@@ -41,4 +41,4 @@ GitHub Actions uploads `build/libs/` on each push. Push a tag `v0.1.0-alpha` to 
 
 ## License
 
-[GPL-3.0-or-later](LICENSE).
+[GPL-3.0](LICENSE).
