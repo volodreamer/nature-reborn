@@ -54,8 +54,8 @@ public final class Lumberjack {
 		}
 
 		List<BlockPos> logs = new ArrayList<>();
-		List<BlockPos> leaves = new ArrayList<>();
-		collect(server, origin, logs, leaves, config);
+		collectLogs(server, origin, logs, config.lumberjackMaxLogs);
+		List<BlockPos> leaves = collectLeaves(server, logs, origin, config.lumberjackMaxLeaves);
 		if (!isNaturalTree(server, origin, logs, leaves)) {
 			return;
 		}
@@ -69,56 +69,64 @@ public final class Lumberjack {
 	}
 
 	private static boolean isNaturalTree(ServerLevel level, BlockPos origin, List<BlockPos> logs, List<BlockPos> leaves) {
-		if (leaves.size() < 8) {
+		if (leaves.size() < 6 && logs.size() < 4) {
 			return false;
 		}
 		int tallest = ForestEcology.trunkColumnHeight(level, origin);
 		for (BlockPos log : logs) {
 			tallest = Math.max(tallest, ForestEcology.trunkColumnHeight(level, log));
 		}
-		return tallest >= 4 || leaves.size() >= 12;
+		return leaves.size() >= 6 || tallest >= 4 || logs.size() >= 8;
 	}
 
-	private static void collect(ServerLevel level, BlockPos origin, List<BlockPos> logs, List<BlockPos> leaves, NatureRebornConfig config) {
+	private static void collectLogs(ServerLevel level, BlockPos origin, List<BlockPos> logs, int maxLogs) {
 		ArrayDeque<BlockPos> queue = new ArrayDeque<>();
 		Set<BlockPos> seen = new HashSet<>();
 		queue.add(origin);
 		seen.add(origin);
-		while (!queue.isEmpty() && logs.size() < config.lumberjackMaxLogs) {
+		while (!queue.isEmpty() && logs.size() < maxLogs) {
 			BlockPos current = queue.removeFirst();
-			boolean fromLog = current.equals(origin) || logs.contains(current);
-			for (Direction direction : Direction.values()) {
-				BlockPos next = current.relative(direction);
-				if (!seen.add(next) || current.distManhattan(origin) > 20) {
-					continue;
-				}
-				BlockState state = level.getBlockState(next);
-				if (state.is(BlockTags.LOGS)) {
-					if (!fromLog) {
-						continue;
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dy = -1; dy <= 1; dy++) {
+					for (int dz = -1; dz <= 1; dz++) {
+						if (dx == 0 && dy == 0 && dz == 0) {
+							continue;
+						}
+						BlockPos next = current.offset(dx, dy, dz);
+						if (!seen.add(next) || current.distManhattan(origin) > 28) {
+							continue;
+						}
+						if (!level.getBlockState(next).is(BlockTags.LOGS)) {
+							continue;
+						}
+						logs.add(next);
+						queue.add(next);
 					}
-					if (isDecorative(level, next)) {
-						continue;
-					}
-					logs.add(next);
-					queue.add(next);
-				} else if (state.is(BlockTags.LEAVES) && leaves.size() < config.lumberjackMaxLeaves) {
-					leaves.add(next);
-					queue.add(next);
 				}
 			}
 		}
 	}
 
-	private static boolean isDecorative(ServerLevel level, BlockPos pos) {
-		if (ForestEcology.trunkColumnHeight(level, pos) >= 3) {
-			return false;
-		}
-		for (Direction direction : Direction.values()) {
-			if (level.getBlockState(pos.relative(direction)).is(BlockTags.LEAVES)) {
-				return false;
+	private static List<BlockPos> collectLeaves(ServerLevel level, List<BlockPos> logs, BlockPos origin, int maxLeaves) {
+		List<BlockPos> leaves = new ArrayList<>();
+		Set<BlockPos> seen = new HashSet<>();
+		List<BlockPos> seeds = new ArrayList<>(logs);
+		seeds.add(origin);
+		for (BlockPos log : seeds) {
+			for (int dx = -3; dx <= 3; dx++) {
+				for (int dy = -2; dy <= 4; dy++) {
+					for (int dz = -3; dz <= 3; dz++) {
+						BlockPos pos = log.offset(dx, dy, dz);
+						if (!seen.add(pos) || leaves.size() >= maxLeaves) {
+							continue;
+						}
+						if (level.getBlockState(pos).is(BlockTags.LEAVES)) {
+							leaves.add(pos);
+						}
+					}
+				}
 			}
 		}
-		return true;
+		return leaves;
 	}
 }
