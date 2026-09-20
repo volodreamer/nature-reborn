@@ -109,8 +109,9 @@ public final class NatureRebornConfigScreen {
 				.setDefaultValue(true)
 				.setSaveConsumer(value -> NatureReborn.config().fallenLogsEnabled = value)
 				.build());
-		trees.addEntry(entries.startBooleanToggle(Component.literal("Lumberjack"), current.lumberjackEnabled)
-				.setDefaultValue(true)
+		trees.addEntry(entries.startBooleanToggle(Component.literal("Lumberjack (experimental)"), current.lumberjackEnabled)
+				.setDefaultValue(false)
+				.setTooltip(Component.literal("After a finished Survival axe break on a real tree, drop the rest of that tree. Off by default."))
 				.setSaveConsumer(value -> NatureReborn.config().lumberjackEnabled = value)
 				.build());
 
