@@ -3,7 +3,6 @@ package ua.volodreamer.naturereborn.tick;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -33,7 +32,6 @@ public final class Weathering {
 			return;
 		}
 		boolean wet = isDamp(level, pos);
-		boolean dryBiome = level.getBiome(pos).is(BiomeTags.IS_DRY) || level.getBiome(pos).is(BiomeTags.IS_DESERT);
 		Block block = state.getBlock();
 		if (block == Blocks.COBBLESTONE && wet && level.getRandom().nextDouble() < 0.035 * speed) {
 			level.setBlock(pos, Blocks.MOSSY_COBBLESTONE.defaultBlockState(), Block.UPDATE_ALL);
@@ -43,12 +41,12 @@ public final class Weathering {
 			level.setBlock(pos, Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Block.UPDATE_ALL);
 			return;
 		}
-		if (block == Blocks.MOSSY_COBBLESTONE && !wet && dryBiome && level.getRandom().nextDouble() < 0.012 * speed) {
-			level.setBlock(pos, Blocks.COBBLESTONE.defaultBlockState(), Block.UPDATE_ALL);
-			return;
-		}
-		if (block == Blocks.MOSSY_STONE_BRICKS && !wet && dryBiome && level.getRandom().nextDouble() < 0.008 * speed) {
-			level.setBlock(pos, Blocks.STONE_BRICKS.defaultBlockState(), Block.UPDATE_ALL);
+		if (!wet && !level.isRainingAt(pos.above()) && level.getRandom().nextDouble() < 0.006 * speed) {
+			if (block == Blocks.MOSSY_COBBLESTONE) {
+				level.setBlock(pos, Blocks.COBBLESTONE.defaultBlockState(), Block.UPDATE_ALL);
+			} else if (block == Blocks.MOSSY_STONE_BRICKS) {
+				level.setBlock(pos, Blocks.STONE_BRICKS.defaultBlockState(), Block.UPDATE_ALL);
+			}
 		}
 	}
 
