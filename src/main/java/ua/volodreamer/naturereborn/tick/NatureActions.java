@@ -172,6 +172,10 @@ public final class NatureActions {
 			handleSapling(level, pos, state, sapling, species, rates, random, speed, stats);
 			return;
 		}
+		if (state.is(BlockTags.LOGS) && ForestEcology.isTrunkBase(level, pos) && ForestEcology.clearLeaflessTrunk(level, pos)) {
+			stats.treeDeaths++;
+			return;
+		}
 		if (state.is(BlockTags.LOGS) && ForestEcology.isTrunkBase(level, pos) && isNaturalTreeStart(level, pos)) {
 			double deathChance = BASE_TREE_DEATH * rates.death() * speed * ForestEcology.deathMultiplier(level, pos);
 			if (chance(random, deathChance)) {
