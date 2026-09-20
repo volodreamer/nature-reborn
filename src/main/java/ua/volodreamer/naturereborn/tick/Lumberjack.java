@@ -8,7 +8,6 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -40,7 +39,7 @@ public final class Lumberjack {
 		if (config.lumberjackSneakBypass && player.isShiftKeyDown()) {
 			return;
 		}
-		if (player.isCreative() || isInstantBuild(player)) {
+		if (player.isCreative()) {
 			return;
 		}
 		if (!broken.is(BlockTags.LOGS)) {
@@ -69,23 +68,14 @@ public final class Lumberjack {
 		}
 	}
 
-	private static boolean isInstantBuild(Player player) {
-		try {
-			return player.gameMode() == GameType.CREATIVE || player.gameMode() == GameType.SPECTATOR;
-		} catch (Throwable ignored) {
-			return player.isCreative();
-		}
-	}
-
 	private static boolean isNaturalTree(ServerLevel level, BlockPos origin, List<BlockPos> logs, List<BlockPos> leaves) {
 		if (leaves.size() < 8) {
 			return false;
 		}
-		int tallest = 0;
+		int tallest = ForestEcology.trunkColumnHeight(level, origin);
 		for (BlockPos log : logs) {
 			tallest = Math.max(tallest, ForestEcology.trunkColumnHeight(level, log));
 		}
-		tallest = Math.max(tallest, ForestEcology.trunkColumnHeight(level, origin));
 		return tallest >= 4 || leaves.size() >= 12;
 	}
 
