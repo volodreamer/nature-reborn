@@ -9,4 +9,6 @@
 - Extended fire (optional burn-until-consumed)
 - Lumberjack **experimental**, off by default (Mod Menu → Trees)
 - Cactus, sugar cane, and mushrooms grow/spread/die in valid biomes
+- Cobble / stone bricks weather to mossy next to water, rain, or moss; dry biomes can reverse it
+- Tag `v*` on GitHub builds a release jar (26.3 only, no 26.2 backport)
 - Server-side simulation; Cloth Config + Mod Menu

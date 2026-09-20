@@ -22,7 +22,6 @@ public final class NatureRebornConfig {
 	public boolean overworldEnabled = true;
 	public boolean netherEnabled = true;
 
-	/** Multiplier for all nature chances. 1.0 = normal, 0 = pause mutations, 4 = debug-fast. */
 	public double natureSpeed = 1.0;
 
 	public boolean plantsEnabled = true;
@@ -37,7 +36,6 @@ public final class NatureRebornConfig {
 	public boolean autoReplantEnabled = true;
 	public boolean autoReplantAllSources = true;
 
-	/** Experimental. Off by default — can still eat builds next to trees. */
 	public boolean lumberjackEnabled = false;
 	public boolean lumberjackSneakBypass = true;
 	public int lumberjackMaxLogs = 320;
@@ -47,6 +45,7 @@ public final class NatureRebornConfig {
 	public boolean fireBurnUntilConsumed = false;
 
 	public boolean fallenLogsEnabled = true;
+	public boolean weatheringEnabled = true;
 
 	public int playerFullRateDistanceChunks = 8;
 	public int natureRollsPerChunkTick = 4;

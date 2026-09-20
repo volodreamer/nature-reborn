@@ -1,6 +1,6 @@
 # Nature Reborn
 
-Fabric mod for Minecraft **26.3**. Spiritual take on classic Nature Overhaul: vanilla plants and trees grow, spread, and die by biome. No new blocks in this version — behavior only.
+Fabric mod for Minecraft **26.3**. Spiritual take on classic Nature Overhaul: vanilla plants and trees grow, spread, and die by biome. No new blocks in this version — behavior only. No 26.2 backport for now.
 
 ## What it does
 
@@ -10,8 +10,11 @@ Fabric mod for Minecraft **26.3**. Spiritual take on classic Nature Overhaul: va
 - Crops spread inside a fenced field, convert dirt/grass to farmland, senesce, and auto-replant
 - Villages stay clearer (paths, buildings, no new forest in the streets)
 - Cactus, sugar cane, and mushrooms follow soil and biome rules
+- Cobble and stone bricks grow moss next to water, rain, or moss blocks (not in villages)
 - Fire can last long enough to spread
 - **Lumberjack** is experimental and **off** (Mods → Nature Reborn → Trees)
+
+Bamboo and vines are left to vanilla.
 
 ## Requirements
 
@@ -30,7 +33,7 @@ Sodium 0.9.2 is a runtime target, not a compile dependency.
 ./gradlew build
 ```
 
-GitHub Actions uploads `build/libs/` on each push.
+GitHub Actions uploads `build/libs/` on each push. Push a tag `v0.1.0-alpha` to publish a GitHub Release.
 
 ## Config
 

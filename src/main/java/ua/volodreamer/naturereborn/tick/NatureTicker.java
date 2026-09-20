@@ -100,6 +100,10 @@ public final class NatureTicker {
 			FireLogic.tick(level, blockPos, state, config);
 			return;
 		}
+		if (Weathering.isWeatherable(state)) {
+			Weathering.tick(level, blockPos, state, config);
+			return;
+		}
 		Species species = SpeciesRegistry.match(state.getBlock());
 		if (species == null) {
 			return;
