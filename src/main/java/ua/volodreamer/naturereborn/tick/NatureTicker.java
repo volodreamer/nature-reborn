@@ -46,6 +46,8 @@ public final class NatureTicker {
 			return;
 		}
 
+		AnimalBreeding.tick(level, players, config);
+
 		RandomSource random = level.getRandom();
 		int radius = Math.max(0, config.playerFullRateDistanceChunks);
 		Set<ChunkPos> visited = new HashSet<>();
