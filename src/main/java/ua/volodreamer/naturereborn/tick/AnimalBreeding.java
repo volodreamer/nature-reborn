@@ -11,6 +11,7 @@ import net.minecraft.world.phys.AABB;
 import ua.volodreamer.naturereborn.config.NatureRebornConfig;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,54 +48,49 @@ final class AnimalBreeding {
 				if (random.nextDouble() >= BASE_CHANCE * Math.min(speed, 3.0)) {
 					continue;
 				}
-				tryBreedCluster(level, animal, random);
+				tryBreedCluster(level, animal, random, seen);
 			}
 		}
 	}
 
-	private static void tryBreedCluster(ServerLevel level, Animal seed, RandomSource random) {
+	private static void tryBreedCluster(ServerLevel level, Animal seed, RandomSource random, Set<Integer> seen) {
 		AABB area = seed.getBoundingBox().inflate(CLUSTER_RANGE);
 		List<Animal> herd = level.getEntitiesOfClass(Animal.class, area, other -> sameKind(seed, other));
 		int babies = 0;
+		int adults = 0;
 		List<Animal> ready = new ArrayList<>();
 		for (Animal member : herd) {
+			seen.add(member.getId());
 			if (member.isBaby()) {
 				babies++;
-			} else if (member.getAge() == 0 && member.isAlive()) {
-				ready.add(member);
+			} else {
+				adults++;
+				if (member.getAge() == 0 && member.isAlive()) {
+					ready.add(member);
+				}
 			}
 		}
-		int cap = babyCap(id(seed.getType()));
+		int cap = Math.max(1, adults) * babyMultiplier(id(seed.getType()));
 		if (babies >= cap || ready.size() < 2) {
 			return;
 		}
-		int births = Math.min(cap - babies, ready.size() >= 3 ? 2 : 1);
-		Animal first = ready.get(random.nextInt(ready.size()));
-		Animal mate = nearestReady(first, ready, PAIR_RANGE);
-		if (mate == null) {
-			return;
-		}
-		breedVanilla(level, first, mate);
-		births--;
-		if (births <= 0) {
-			return;
-		}
-		Animal third = null;
-		for (Animal candidate : ready) {
-			if (candidate == first || candidate == mate) {
+		Collections.shuffle(ready, new java.util.Random(random.nextLong()));
+		int room = cap - babies;
+		Set<Integer> used = new HashSet<>();
+		for (int i = 0; i < ready.size() && room > 0; i++) {
+			Animal first = ready.get(i);
+			if (!used.add(first.getId())) {
 				continue;
 			}
-			if (candidate.distanceToSqr(first) <= PAIR_RANGE * PAIR_RANGE || candidate.distanceToSqr(mate) <= PAIR_RANGE * PAIR_RANGE) {
-				third = candidate;
-				break;
+			Animal mate = nearestUnused(first, ready, used, PAIR_RANGE);
+			if (mate == null) {
+				used.remove(first.getId());
+				continue;
 			}
+			used.add(mate.getId());
+			breedVanilla(level, first, mate);
+			room--;
 		}
-		if (third == null) {
-			return;
-		}
-		third.setAge(0);
-		first.setAge(0);
-		breedVanilla(level, third, first);
 	}
 
 	private static void breedVanilla(ServerLevel level, Animal a, Animal b) {
@@ -103,11 +99,11 @@ final class AnimalBreeding {
 		a.spawnChildFromBreeding(level, b);
 	}
 
-	private static Animal nearestReady(Animal origin, List<Animal> ready, double range) {
+	private static Animal nearestUnused(Animal origin, List<Animal> ready, Set<Integer> used, double range) {
 		Animal best = null;
 		double bestDist = range * range;
 		for (Animal other : ready) {
-			if (other == origin) {
+			if (other == origin || used.contains(other.getId())) {
 				continue;
 			}
 			double dist = origin.distanceToSqr(other);
@@ -128,14 +124,14 @@ final class AnimalBreeding {
 		return a.getType() == b.getType();
 	}
 
-	private static int babyCap(String path) {
+	private static int babyMultiplier(String path) {
 		if (path.equals("chicken")) {
-			return 6;
-		}
-		if (path.equals("pig")) {
 			return 3;
 		}
-		return 2;
+		if (path.equals("pig")) {
+			return 2;
+		}
+		return 1;
 	}
 
 	private static String id(EntityType<?> type) {
