@@ -1,5 +1,7 @@
 package ua.volodreamer.naturereborn.tick;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
@@ -62,7 +64,7 @@ final class AnimalBreeding {
 				ready.add(member);
 			}
 		}
-		int cap = babyCap(seed.getType());
+		int cap = babyCap(id(seed.getType()));
 		if (babies >= cap || ready.size() < 2) {
 			return;
 		}
@@ -118,21 +120,26 @@ final class AnimalBreeding {
 	}
 
 	private static boolean supported(Animal animal) {
-		EntityType<?> type = animal.getType();
-		return type == EntityType.COW || type == EntityType.PIG || type == EntityType.SHEEP || type == EntityType.CHICKEN;
+		String path = id(animal.getType());
+		return path.equals("cow") || path.equals("pig") || path.equals("sheep") || path.equals("chicken");
 	}
 
 	private static boolean sameKind(Animal a, Animal b) {
 		return a.getType() == b.getType();
 	}
 
-	private static int babyCap(EntityType<?> type) {
-		if (type == EntityType.CHICKEN) {
+	private static int babyCap(String path) {
+		if (path.equals("chicken")) {
 			return 6;
 		}
-		if (type == EntityType.PIG) {
+		if (path.equals("pig")) {
 			return 3;
 		}
 		return 2;
+	}
+
+	private static String id(EntityType<?> type) {
+		Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+		return key == null ? "" : key.getPath();
 	}
 }
