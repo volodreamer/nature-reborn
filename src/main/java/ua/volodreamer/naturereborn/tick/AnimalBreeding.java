@@ -5,10 +5,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.animal.Chicken;
-import net.minecraft.world.entity.animal.Cow;
-import net.minecraft.world.entity.animal.Pig;
-import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.phys.AABB;
 import ua.volodreamer.naturereborn.config.NatureRebornConfig;
 
@@ -66,7 +62,7 @@ final class AnimalBreeding {
 				ready.add(member);
 			}
 		}
-		int cap = babyCap(seed);
+		int cap = babyCap(seed.getType());
 		if (babies >= cap || ready.size() < 2) {
 			return;
 		}
@@ -130,15 +126,12 @@ final class AnimalBreeding {
 		return a.getType() == b.getType();
 	}
 
-	private static int babyCap(Animal animal) {
-		if (animal instanceof Chicken) {
+	private static int babyCap(EntityType<?> type) {
+		if (type == EntityType.CHICKEN) {
 			return 6;
 		}
-		if (animal instanceof Pig) {
+		if (type == EntityType.PIG) {
 			return 3;
-		}
-		if (animal instanceof Cow) {
-			return 2;
 		}
 		return 2;
 	}
