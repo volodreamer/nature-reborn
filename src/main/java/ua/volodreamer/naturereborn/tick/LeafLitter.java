@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.level.block.state.properties.Property;
 
 final class LeafLitter {
 	private static final double BASE_PLACE = 0.01;
@@ -38,7 +39,7 @@ final class LeafLitter {
 		if (covered >= cap) {
 			return;
 		}
-		if (random.nextDouble() >= BASE_PLACE * speed * (1.0 - covered / cap)) {
+		if (random.nextDouble() >= BASE_PLACE * speed * (1.0 - covered / Math.max(cap, 0.01))) {
 			return;
 		}
 
@@ -66,7 +67,8 @@ final class LeafLitter {
 			return;
 		}
 		int current = state.getValue(amount);
-		if (current < 4) {
+		int max = amount.getPossibleValues().stream().mapToInt(Integer::intValue).max().orElse(4);
+		if (current < max) {
 			level.setBlock(pos, state.setValue(amount, current + 1), Block.UPDATE_ALL);
 		}
 	}
@@ -76,19 +78,14 @@ final class LeafLitter {
 		if (amount == null) {
 			return state;
 		}
-		return state.setValue(amount, Math.min(value, 4));
+		return state.setValue(amount, value);
 	}
 
 	private static IntegerProperty segmentProperty(BlockState state) {
-		if (state.hasProperty(BlockStateProperties.FLOWER_AMOUNT)) {
-			return BlockStateProperties.FLOWER_AMOUNT;
-		}
-		try {
-			if (state.hasProperty(BlockStateProperties.SEGMENT_AMOUNT)) {
-				return BlockStateProperties.SEGMENT_AMOUNT;
+		for (Property<?> property : state.getProperties()) {
+			if (property instanceof IntegerProperty integer && ("segment_amount".equals(property.getName()) || "flower_amount".equals(property.getName()))) {
+				return integer;
 			}
-		} catch (NoSuchFieldError ignored) {
-			return null;
 		}
 		return null;
 	}
@@ -99,8 +96,7 @@ final class LeafLitter {
 		for (int dx = -2; dx <= 2; dx++) {
 			for (int dz = -2; dz <= 2; dz++) {
 				samples++;
-				BlockPos ground = soil.offset(dx, 0, dz);
-				Block above = level.getBlockState(ground.above()).getBlock();
+				Block above = level.getBlockState(soil.offset(dx, 1, dz)).getBlock();
 				if (above == Blocks.LEAF_LITTER) {
 					litter++;
 				}
@@ -133,7 +129,7 @@ final class LeafLitter {
 		if (id.contains("birch") || id.contains("forest")) {
 			return 0.70;
 		}
-		if (biome.is(BiomeTags.IS_FOREST) && !biome.is(BiomeTags.IS_TAIGA)) {
+		if (biome.is(BiomeTags.IS_FOREST)) {
 			return 0.65;
 		}
 		return 0;
