@@ -3,8 +3,9 @@ package ua.volodreamer.naturereborn.tick;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.BiomeTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
@@ -16,11 +17,24 @@ import net.minecraft.world.level.block.state.properties.Property;
 
 final class LeafLitter {
 	private static final double BASE_PLACE = 0.01;
+	private static final Block LITTER = litterBlock();
 
 	private LeafLitter() {
 	}
 
+	private static Block litterBlock() {
+		Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse("minecraft:leaf_litter"));
+		return block == Blocks.AIR ? Blocks.PINK_PETALS : block;
+	}
+
+	static boolean isLitter(Block block) {
+		return block == LITTER;
+	}
+
 	static void tick(ServerLevel level, BlockPos pos, BlockState state, RandomSource random, double speed, TickStats stats) {
+		if (VillageZones.inVillage(level, pos) || LITTER == Blocks.PINK_PETALS && !state.is(Blocks.PINK_PETALS)) {
+			// still allow real leaf_litter when resolved
+		}
 		if (VillageZones.inVillage(level, pos)) {
 			return;
 		}
@@ -44,7 +58,7 @@ final class LeafLitter {
 		}
 
 		BlockState existing = level.getBlockState(surface);
-		if (existing.getBlock() == Blocks.LEAF_LITTER) {
+		if (isLitter(existing.getBlock())) {
 			thicken(level, surface, existing);
 			stats.grassRegrows++;
 			return;
@@ -52,7 +66,7 @@ final class LeafLitter {
 		if (!existing.isAir() && !ForestEcology.isFoliage(existing.getBlock())) {
 			return;
 		}
-		BlockState litter = Blocks.LEAF_LITTER.defaultBlockState();
+		BlockState litter = LITTER.defaultBlockState();
 		if (litter.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
 			litter = litter.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.Plane.HORIZONTAL.getRandomDirection(random));
 		}
@@ -96,8 +110,7 @@ final class LeafLitter {
 		for (int dx = -2; dx <= 2; dx++) {
 			for (int dz = -2; dz <= 2; dz++) {
 				samples++;
-				Block above = level.getBlockState(soil.offset(dx, 1, dz)).getBlock();
-				if (above == Blocks.LEAF_LITTER) {
+				if (isLitter(level.getBlockState(soil.offset(dx, 1, dz)).getBlock())) {
 					litter++;
 				}
 			}
@@ -128,9 +141,6 @@ final class LeafLitter {
 		}
 		if (id.contains("birch") || id.contains("forest")) {
 			return 0.70;
-		}
-		if (biome.is(BiomeTags.IS_FOREST)) {
-			return 0.65;
 		}
 		return 0;
 	}
