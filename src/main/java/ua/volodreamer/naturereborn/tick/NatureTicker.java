@@ -108,7 +108,7 @@ public final class NatureTicker {
 			Weathering.tick(level, blockPos, state, config);
 			return;
 		}
-		if (config.grassEnabled && (state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.LEAF_LITTER) || ForestEcology.isPlantableSoil(state.getBlock()))) {
+		if (config.grassEnabled && (state.is(Blocks.GRASS_BLOCK) || LeafLitter.isLitter(state.getBlock()) || ForestEcology.isPlantableSoil(state.getBlock()))) {
 			LeafLitter.tick(level, blockPos, state, level.getRandom(), config.clampedSpeed(), stats);
 		}
 		Species species = SpeciesRegistry.match(state.getBlock());
