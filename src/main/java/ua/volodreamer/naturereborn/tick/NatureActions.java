@@ -1,13 +1,16 @@
 package ua.volodreamer.naturereborn.tick;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.BoneMealItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoublePlantBlock;
@@ -26,9 +29,9 @@ import java.util.List;
 import java.util.Set;
 
 public final class NatureActions {
-	private static final double BASE_GRASS_SPREAD = 0.06;
-	private static final double BASE_COVER_GROW = 0.018;
-	private static final double BASE_GRASS_GROW_UP = 0.04;
+	private static final double BASE_GRASS_SPREAD = 0.03;
+	private static final double BASE_COVER_GROW = 0.009;
+	private static final double BASE_GRASS_GROW_UP = 0.0009;
 	private static final double BASE_PLANT_DEATH = 0.018;
 	private static final double BASE_FLOWER_SPREAD = 0.035;
 	private static final double BASE_SAPLING_PLANT = 0.045;
@@ -41,11 +44,6 @@ public final class NatureActions {
 	private static final int MAX_TREE_LEAVES = 400;
 	private static final int MIN_TREE_TRUNK = 4;
 	private static final int MIN_TREE_LEAVES = 8;
-
-	private static final Block[] GROUND_COVER = {
-			Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS, Blocks.SHORT_GRASS,
-			Blocks.FERN
-	};
 
 	private NatureActions() {
 	}
@@ -104,15 +102,15 @@ public final class NatureActions {
 		}
 
 		if (block == Blocks.SHORT_GRASS && chance(random, BASE_GRASS_GROW_UP * rates.growth() * speed)) {
-			if (level.isEmptyBlock(pos.above()) && nearbyFoliage(level, pos) < 6) {
+			if (level.isEmptyBlock(pos.above()) && nearbyFoliage(level, pos) < 3) {
 				placeDouble(level, pos, Blocks.TALL_GRASS);
 				stats.grassRegrows++;
 			}
 			return;
 		}
 
-		if (block == Blocks.FERN && chance(random, BASE_GRASS_GROW_UP * rates.growth() * speed * 0.6)) {
-			if (level.isEmptyBlock(pos.above())) {
+		if (block == Blocks.FERN && chance(random, BASE_GRASS_GROW_UP * rates.growth() * speed)) {
+			if (level.isEmptyBlock(pos.above()) && nearbyFoliage(level, pos) < 3) {
 				placeDouble(level, pos, Blocks.LARGE_FERN);
 				stats.grassRegrows++;
 			}
@@ -124,13 +122,60 @@ public final class NatureActions {
 			if (!level.isEmptyBlock(above) || level.getRawBrightness(above, 0) < MIN_LIGHT) {
 				return;
 			}
-			if (nearbyFoliage(level, above) >= 4) {
+			if (nearbyFoliage(level, above) >= 3) {
 				return;
 			}
-			Block cover = GROUND_COVER[random.nextInt(GROUND_COVER.length)];
+			Block cover = pickBiomeCover(level, pos, random);
+			if (cover == null) {
+				return;
+			}
 			level.setBlock(above, cover.defaultBlockState(), Block.UPDATE_ALL);
 			stats.grassRegrows++;
 		}
+	}
+
+	private static Block pickBiomeCover(ServerLevel level, BlockPos pos, RandomSource random) {
+		Holder<Biome> biome = level.getBiome(pos);
+		String id = biome.unwrapKey().map(key -> key.identifier().getPath()).orElse("");
+		if (biome.is(BiomeTags.IS_DESERT) || id.contains("desert") || id.contains("badlands")) {
+			return random.nextFloat() < 0.25f ? Blocks.DEAD_BUSH : null;
+		}
+		if (id.contains("flower_forest") || id.contains("meadow") || id.contains("sunflower")) {
+			if (random.nextFloat() < 0.55f) {
+				return randomFlower(id, random);
+			}
+			return Blocks.SHORT_GRASS;
+		}
+		if (id.contains("swamp") || biome.is(BiomeTags.IS_TAIGA) || id.contains("taiga") || id.contains("old_growth")) {
+			return random.nextFloat() < 0.7f ? Blocks.FERN : Blocks.SHORT_GRASS;
+		}
+		if (biome.is(BiomeTags.IS_JUNGLE) || id.contains("jungle")) {
+			return random.nextFloat() < 0.6f ? Blocks.FERN : Blocks.SHORT_GRASS;
+		}
+		if (id.contains("savanna")) {
+			return Blocks.SHORT_GRASS;
+		}
+		if (id.contains("plains")) {
+			if (random.nextFloat() < 0.2f) {
+				return random.nextBoolean() ? Blocks.DANDELION : Blocks.POPPY;
+			}
+			return Blocks.SHORT_GRASS;
+		}
+		if (biome.is(BiomeTags.IS_FOREST)) {
+			return random.nextFloat() < 0.35f ? Blocks.FERN : Blocks.SHORT_GRASS;
+		}
+		return Blocks.SHORT_GRASS;
+	}
+
+	private static Block randomFlower(String biomePath, RandomSource random) {
+		if (biomePath.contains("sunflower") && random.nextFloat() < 0.15f) {
+			return Blocks.DANDELION;
+		}
+		Block[] flowers = {
+				Blocks.DANDELION, Blocks.POPPY, Blocks.CORNFLOWER, Blocks.OXEYE_DAISY,
+				Blocks.AZURE_BLUET, Blocks.ALLIUM
+		};
+		return flowers[random.nextInt(flowers.length)];
 	}
 
 	private static void handleFlower(ServerLevel level, BlockPos pos, BlockState state, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
