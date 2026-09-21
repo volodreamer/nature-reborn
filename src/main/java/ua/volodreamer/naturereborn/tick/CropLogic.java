@@ -28,6 +28,7 @@ public final class CropLogic {
 	private static final double BASE_FRUIT = 0.08;
 	private static final int MIN_LIGHT = 9;
 	private static final int SPREAD_TRIES = 4;
+	private static final Direction[] HORIZONTAL = {Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST};
 
 	private CropLogic() {
 	}
@@ -65,24 +66,21 @@ public final class CropLogic {
 		}
 	}
 
-	private static void tickStem(ServerLevel level, BlockPos pos, BlockState state, Species species, NatureRebornConfig config, RandomSource random, double speed, TickStats stats, BiomeRates rates) {
-	}
-
 	private static void tickStem(ServerLevel level, BlockPos pos, BlockState state, Species species, BiomeRates rates, NatureRebornConfig config, RandomSource random, double speed, TickStats stats) {
 		Block block = state.getBlock();
-		Block fruit = fruitOf(block, species);
-		Block stem = stemOf(block, species);
+		Block fruit = fruitOf(block);
+		Block stem = stemOf(block);
 
 		if (block == fruit) {
 			if (chance(random, BASE_FRUIT * rates.spread() * speed)) {
-				trySpreadStem(level, pos, stem, fruit, config, random, stats);
+				trySpreadStem(level, pos, stem, config, random, stats);
 			}
 			return;
 		}
 
 		if (isAttachedStem(block) || hasAdjacentFruit(level, pos, fruit)) {
 			if (chance(random, BASE_FRUIT * rates.spread() * speed)) {
-				trySpreadStem(level, pos, stem, fruit, config, random, stats);
+				trySpreadStem(level, pos, stem, config, random, stats);
 			}
 			return;
 		}
@@ -95,15 +93,13 @@ public final class CropLogic {
 			return;
 		}
 
-		if (chance(random, BASE_FRUIT * rates.growth() * speed)) {
-			if (tryPlaceFruit(level, pos, fruit, random)) {
-				stats.cropSpreads++;
-			}
+		if (chance(random, BASE_FRUIT * rates.growth() * speed) && tryPlaceFruit(level, pos, fruit, random)) {
+			stats.cropSpreads++;
 		}
 	}
 
 	private static boolean tryPlaceFruit(ServerLevel level, BlockPos stem, Block fruit, RandomSource random) {
-		Direction[] dirs = Direction.Plane.HORIZONTAL.stream().toArray(Direction[]::new);
+		Direction[] dirs = HORIZONTAL.clone();
 		for (int i = dirs.length - 1; i > 0; i--) {
 			int j = random.nextInt(i + 1);
 			Direction tmp = dirs[i];
@@ -121,7 +117,7 @@ public final class CropLogic {
 		return false;
 	}
 
-	private static boolean trySpreadStem(ServerLevel level, BlockPos origin, Block stem, Block fruit, NatureRebornConfig config, RandomSource random, TickStats stats) {
+	private static boolean trySpreadStem(ServerLevel level, BlockPos origin, Block stem, NatureRebornConfig config, RandomSource random, TickStats stats) {
 		int radius = Math.max(2, config.cropSpreadRadius + 1);
 		for (int attempt = 0; attempt < 8; attempt++) {
 			int dx = random.nextInt(radius * 2 + 1) - radius;
@@ -165,14 +161,15 @@ public final class CropLogic {
 			return false;
 		}
 		BlockState ground = level.getBlockState(slot.below());
-		if (ForestEcology.isProtected(ground) || !ground.isSolidRender(level, slot.below())) {
+		if (ForestEcology.isProtected(ground)) {
 			return false;
 		}
-		return VillageZones.inVillage(level, slot) ? ground.getBlock() == Blocks.FARMLAND || isSoil(ground.getBlock()) : true;
+		Block soil = ground.getBlock();
+		return isSoil(soil) || soil == Blocks.PODZOL || soil == Blocks.MOSS_BLOCK || soil == Blocks.STONE;
 	}
 
 	private static boolean hasFruitSpace(ServerLevel level, BlockPos stem) {
-		for (Direction dir : Direction.Plane.HORIZONTAL) {
+		for (Direction dir : HORIZONTAL) {
 			if (canPlaceFruitAt(level, stem.relative(dir))) {
 				return true;
 			}
@@ -181,8 +178,8 @@ public final class CropLogic {
 	}
 
 	private static boolean hasAdjacentFruit(ServerLevel level, BlockPos pos, Block fruit) {
-		for (Direction dir : Direction.Plane.HORIZONTAL) {
-			if (level.getBlockState(pos.relative(dir)).is(fruit)) {
+		for (Direction dir : HORIZONTAL) {
+			if (level.getBlockState(pos.relative(dir)).getBlock() == fruit) {
 				return true;
 			}
 		}
@@ -213,25 +210,14 @@ public final class CropLogic {
 		return block == Blocks.ATTACHED_PUMPKIN_STEM || block == Blocks.ATTACHED_MELON_STEM;
 	}
 
-	private static Block fruitOf(Block block, Species species) {
+	private static Block fruitOf(Block block) {
 		if (block == Blocks.MELON_STEM || block == Blocks.ATTACHED_MELON_STEM || block == Blocks.MELON) {
 			return Blocks.MELON;
-		}
-		if (block == Blocks.PUMPKIN_STEM || block == Blocks.ATTACHED_PUMPKIN_STEM || block == Blocks.PUMPKIN) {
-			return Blocks.PUMPKIN;
-		}
-		for (Block listed : species.blocks()) {
-			if (listed == Blocks.MELON) {
-				return Blocks.MELON;
-			}
-			if (listed == Blocks.PUMPKIN) {
-				return Blocks.PUMPKIN;
-			}
 		}
 		return Blocks.PUMPKIN;
 	}
 
-	private static Block stemOf(Block block, Species species) {
+	private static Block stemOf(Block block) {
 		if (block == Blocks.MELON || block == Blocks.MELON_STEM || block == Blocks.ATTACHED_MELON_STEM) {
 			return Blocks.MELON_STEM;
 		}
