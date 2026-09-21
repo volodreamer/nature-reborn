@@ -13,7 +13,7 @@ import java.nio.file.Path;
 
 public final class NatureRebornConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-	private static final int SCHEMA = 2;
+	private static final int SCHEMA = 3;
 
 	public int configSchema = SCHEMA;
 
@@ -35,6 +35,8 @@ public final class NatureRebornConfig {
 
 	public boolean autoReplantEnabled = true;
 	public boolean autoReplantAllSources = true;
+
+	public boolean animalBreedingEnabled = true;
 
 	public boolean lumberjackEnabled = false;
 	public boolean lumberjackSneakBypass = true;
@@ -81,8 +83,10 @@ public final class NatureRebornConfig {
 			if (loaded == null) {
 				return defaults();
 			}
-			if (loaded.configSchema < SCHEMA) {
+			if (loaded.configSchema < 2) {
 				loaded.lumberjackEnabled = false;
+			}
+			if (loaded.configSchema < SCHEMA) {
 				loaded.configSchema = SCHEMA;
 				save(loaded);
 			}
