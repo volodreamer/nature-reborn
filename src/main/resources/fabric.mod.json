@@ -35,7 +35,9 @@
     "fabricloader": ">=0.19.5",
     "minecraft": "~26.3",
     "java": ">=25",
-    "fabric-api": ">=0.161.0+26.3",
+    "fabric-api": ">=0.161.0+26.3"
+  },
+  "recommends": {
     "cloth-config": ">=26.3.158"
   },
   "suggests": {

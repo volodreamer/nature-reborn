@@ -1,6 +1,7 @@
 package ua.volodreamer.naturereborn.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
@@ -27,11 +28,15 @@ public final class NatureRebornCommands {
 	}
 
 	private static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-		dispatcher.register(Commands.literal("naturereborn")
+		LiteralArgumentBuilder<CommandSourceStack> tree = Commands.literal("naturereborn")
 				.requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
 				.then(Commands.literal("status").executes(NatureRebornCommands::status))
 				.then(Commands.literal("scan").executes(NatureRebornCommands::scan))
-				.then(Commands.literal("reload").executes(NatureRebornCommands::reload)));
+				.then(Commands.literal("reload").executes(NatureRebornCommands::reload));
+		dispatcher.register(tree);
+		dispatcher.register(Commands.literal("no")
+				.requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
+				.redirect(dispatcher.getRoot().getChild("naturereborn")));
 	}
 
 	private static int status(CommandContext<CommandSourceStack> context) {
@@ -44,6 +49,7 @@ public final class NatureRebornCommands {
 		source.sendSuccess(() -> Component.literal("master=" + config.masterEnabled
 				+ " dimEnabled=" + NatureTicker.isDimensionEnabled(level, config)
 				+ " species=" + SpeciesRegistry.size()
+				+ " speed=" + config.clampedSpeed()
 				+ " radius=" + config.playerFullRateDistanceChunks
 				+ " rolls/chunk=" + config.natureRollsPerChunkTick), false);
 		if (stats != null) {

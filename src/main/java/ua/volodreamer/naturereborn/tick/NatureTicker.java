@@ -32,7 +32,7 @@ public final class NatureTicker {
 
 	private static void onEndLevelTick(ServerLevel level) {
 		NatureRebornConfig config = NatureReborn.config();
-		if (!config.masterEnabled || !isDimensionEnabled(level, config)) {
+		if (!config.masterEnabled || config.clampedSpeed() <= 0 || !isDimensionEnabled(level, config)) {
 			return;
 		}
 
@@ -83,7 +83,7 @@ public final class NatureTicker {
 			hit(level, chunk, new BlockPos(x, groundY - 1, z), config, stats);
 			hit(level, chunk, new BlockPos(x, groundY, z), config, stats);
 			hit(level, chunk, new BlockPos(x, groundY + 1, z), config, stats);
-			if (canopyY > groundY) {
+			if (canopyY > groundY + 1) {
 				int leafY = groundY + 1 + random.nextInt(Math.max(1, canopyY - groundY));
 				hit(level, chunk, new BlockPos(x, leafY, z), config, stats);
 			}
@@ -94,8 +94,11 @@ public final class NatureTicker {
 		if (!level.isInWorldBounds(blockPos)) {
 			return;
 		}
-		stats.rolls++;
 		BlockState state = chunk.getBlockState(blockPos);
+		if (state.isAir()) {
+			return;
+		}
+		stats.rolls++;
 		if (FireLogic.isFire(state)) {
 			FireLogic.tick(level, blockPos, state, config);
 			return;
