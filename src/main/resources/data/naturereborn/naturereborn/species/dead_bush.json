@@ -1,0 +1,13 @@
+{
+  "id": "dead_bush",
+  "kind": "plant",
+  "blocks": ["minecraft:dead_bush"],
+  "defaults": { "growth": 0.5, "spread": 0.4, "death": 0.25 },
+  "biomes": {
+    "#minecraft:is_desert": { "growth": 1.3, "spread": 1.1, "death": 0.08 },
+    "minecraft:badlands": { "growth": 1.2, "spread": 1.0, "death": 0.1 },
+    "minecraft:wooded_badlands": { "growth": 1.0, "spread": 0.8, "death": 0.15 },
+    "minecraft:swamp": { "growth": 0.0, "spread": 0.0, "death": 4.0 },
+    "#minecraft:is_forest": { "growth": 0.1, "spread": 0.05, "death": 2.5 }
+  }
+}

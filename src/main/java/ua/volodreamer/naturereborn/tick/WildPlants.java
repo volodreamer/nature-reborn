@@ -8,6 +8,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CactusBlock;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.SugarCaneBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import ua.volodreamer.naturereborn.species.BiomeRates;
@@ -34,11 +35,80 @@ final class WildPlants {
 			handleMushroom(level, pos, block, rates, random, speed, stats);
 			return true;
 		}
+		if (block == Blocks.LILY_PAD) {
+			handleLily(level, pos, rates, random, speed, stats);
+			return true;
+		}
+		if (block == Blocks.DEAD_BUSH) {
+			handleDeadBush(level, pos, rates, random, speed, stats);
+			return true;
+		}
 		return false;
 	}
 
 	private interface GroundCheck {
 		boolean test(ServerLevel level, BlockPos ground);
+	}
+
+	private static void handleLily(ServerLevel level, BlockPos pos, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
+		if (!isStillWater(level.getBlockState(pos.below()))) {
+			if (chance(random, BASE_DEATH * rates.death() * speed * 4.0)) {
+				level.destroyBlock(pos, false);
+				stats.flowerDeaths++;
+			}
+			return;
+		}
+		if (VillageZones.inVillage(level, pos)) {
+			return;
+		}
+		if (!chance(random, BASE_SPREAD * rates.spread() * speed)) {
+			return;
+		}
+		BlockPos target = pos.offset(random.nextInt(7) - 3, 0, random.nextInt(7) - 3);
+		if (!level.isEmptyBlock(target) || !isStillWater(level.getBlockState(target.below()))) {
+			return;
+		}
+		if (!Blocks.LILY_PAD.defaultBlockState().canSurvive(level, target)) {
+			return;
+		}
+		level.setBlock(target, Blocks.LILY_PAD.defaultBlockState(), Block.UPDATE_ALL);
+		stats.flowerSpreads++;
+	}
+
+	private static void handleDeadBush(ServerLevel level, BlockPos pos, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
+		Block soil = level.getBlockState(pos.below()).getBlock();
+		boolean drySoil = soil == Blocks.SAND || soil == Blocks.RED_SAND || soil == Blocks.TERRACOTTA || soil == Blocks.SUSPICIOUS_SAND;
+		if (!drySoil || level.isRainingAt(pos)) {
+			if (chance(random, BASE_DEATH * rates.death() * speed * (drySoil ? 1.0 : 4.0))) {
+				level.destroyBlock(pos, false);
+				stats.flowerDeaths++;
+			}
+			return;
+		}
+		if (VillageZones.inVillage(level, pos)) {
+			return;
+		}
+		if (!chance(random, BASE_SPREAD * rates.spread() * speed)) {
+			return;
+		}
+		BlockPos probe = pos.offset(random.nextInt(7) - 3, random.nextInt(3) - 1, random.nextInt(7) - 3);
+		BlockPos ground = probe.below();
+		Block groundBlock = level.getBlockState(ground).getBlock();
+		if (groundBlock != Blocks.SAND && groundBlock != Blocks.RED_SAND && groundBlock != Blocks.TERRACOTTA) {
+			return;
+		}
+		if (!level.isEmptyBlock(probe) || ForestEcology.isProtected(level.getBlockState(ground))) {
+			return;
+		}
+		if (!Blocks.DEAD_BUSH.defaultBlockState().canSurvive(level, probe)) {
+			return;
+		}
+		level.setBlock(probe, Blocks.DEAD_BUSH.defaultBlockState(), Block.UPDATE_ALL);
+		stats.flowerSpreads++;
+	}
+
+	private static boolean isStillWater(BlockState state) {
+		return state.getBlock() == Blocks.WATER && (!(state.getBlock() instanceof LiquidBlock) || state.getFluidState().isSource());
 	}
 
 	private static void handleColumn(ServerLevel level, BlockPos pos, Block plant, int maxHeight, GroundCheck ground, BiomeRates rates, RandomSource random, double speed, TickStats stats, boolean dryOnly) {
