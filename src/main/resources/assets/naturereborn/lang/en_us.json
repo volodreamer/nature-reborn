@@ -26,6 +26,8 @@
   "naturereborn.config.cropMatureLifeMultiplier": "Mature life multiplier",
   "naturereborn.config.autoReplantEnabled": "Auto-replant on harvest",
   "naturereborn.config.autoReplantAllSources": "Auto-replant from all break sources",
+  "naturereborn.config.animalBreedingEnabled": "Natural animal breeding",
+  "naturereborn.config.animalBreedingEnabled.tooltip": "Adult cows, pigs, sheep and chickens breed on their own using vanilla babies, cooldown and XP. Nearby baby caps apply.",
   "naturereborn.config.treesEnabled": "Tree lifecycle",
   "naturereborn.config.fallenLogsEnabled": "Rare fallen logs",
   "naturereborn.config.lumberjackEnabled": "Lumberjack (experimental)",
