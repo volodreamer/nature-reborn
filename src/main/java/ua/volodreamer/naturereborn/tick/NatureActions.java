@@ -33,12 +33,14 @@ public final class NatureActions {
 	private static final double BASE_COVER_GROW = 0.009;
 	private static final double BASE_GRASS_GROW_UP = 0.0009;
 	private static final double BASE_PLANT_DEATH = 0.018;
+	private static final double BASE_TALL_THIN = 0.04;
 	private static final double BASE_FLOWER_SPREAD = 0.035;
 	private static final double BASE_SAPLING_PLANT = 0.045;
 	private static final double BASE_SAPLING_GROW = 0.14;
 	private static final double BASE_SAPLING_DEATH = 0.05;
 	private static final double BASE_TREE_DEATH = 0.0035;
 	private static final int SPREAD_RADIUS = 5;
+	private static final int FOLIAGE_CAP = 3;
 	private static final int MIN_LIGHT = 8;
 	private static final int MAX_TREE_LOGS = 220;
 	private static final int MAX_TREE_LEAVES = 400;
@@ -78,12 +80,32 @@ public final class NatureActions {
 
 	private static void handleGrass(ServerLevel level, BlockPos pos, BlockState state, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
 		Block block = state.getBlock();
+		if (state.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
+				&& state.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER) {
+			return;
+		}
 		boolean shaded = block == Blocks.GRASS_BLOCK
 				? ForestEcology.isUnderCanopy(level, pos.above())
 				: ForestEcology.isUnderCanopy(level, pos);
 
+		int foliage = isReplaceableFoliage(block) ? nearbyFoliage(level, pos) : 0;
+		boolean tall = block == Blocks.TALL_GRASS || block == Blocks.LARGE_FERN;
+		boolean overCap = foliage >= FOLIAGE_CAP;
 		double shadeDeath = shaded ? 4.5 : 1.0;
-		if (isReplaceableFoliage(block) && chance(random, BASE_PLANT_DEATH * rates.death() * speed * shadeDeath)) {
+		double crowd = 1.0;
+		if (tall && overCap) {
+			crowd = 8.0 + Math.min(10, foliage - FOLIAGE_CAP);
+		} else if (overCap) {
+			crowd = 2.5;
+		}
+
+		if (tall && overCap && chance(random, BASE_TALL_THIN * rates.death() * speed * crowd)) {
+			shrinkTall(level, pos, block);
+			stats.grassDeaths++;
+			return;
+		}
+
+		if (isReplaceableFoliage(block) && chance(random, BASE_PLANT_DEATH * rates.death() * speed * shadeDeath * crowd)) {
 			level.destroyBlock(pos, false);
 			stats.grassDeaths++;
 			return;
@@ -102,7 +124,7 @@ public final class NatureActions {
 		}
 
 		if (block == Blocks.SHORT_GRASS && chance(random, BASE_GRASS_GROW_UP * rates.growth() * speed)) {
-			if (level.isEmptyBlock(pos.above()) && nearbyFoliage(level, pos) < 3) {
+			if (level.isEmptyBlock(pos.above()) && nearbyFoliage(level, pos) < FOLIAGE_CAP) {
 				placeDouble(level, pos, Blocks.TALL_GRASS);
 				stats.grassRegrows++;
 			}
@@ -110,7 +132,7 @@ public final class NatureActions {
 		}
 
 		if (block == Blocks.FERN && chance(random, BASE_GRASS_GROW_UP * rates.growth() * speed)) {
-			if (level.isEmptyBlock(pos.above()) && nearbyFoliage(level, pos) < 3) {
+			if (level.isEmptyBlock(pos.above()) && nearbyFoliage(level, pos) < FOLIAGE_CAP) {
 				placeDouble(level, pos, Blocks.LARGE_FERN);
 				stats.grassRegrows++;
 			}
@@ -122,7 +144,7 @@ public final class NatureActions {
 			if (!level.isEmptyBlock(above) || level.getRawBrightness(above, 0) < MIN_LIGHT) {
 				return;
 			}
-			if (nearbyFoliage(level, above) >= 3) {
+			if (nearbyFoliage(level, above) >= FOLIAGE_CAP) {
 				return;
 			}
 			Block cover = pickBiomeCover(level, pos, random);
@@ -131,6 +153,14 @@ public final class NatureActions {
 			}
 			level.setBlock(above, cover.defaultBlockState(), Block.UPDATE_ALL);
 			stats.grassRegrows++;
+		}
+	}
+
+	private static void shrinkTall(ServerLevel level, BlockPos pos, Block block) {
+		Block shortForm = block == Blocks.LARGE_FERN ? Blocks.FERN : Blocks.SHORT_GRASS;
+		level.setBlock(pos, shortForm.defaultBlockState(), Block.UPDATE_ALL);
+		if (level.getBlockState(pos.above()).getBlock() == block) {
+			level.removeBlock(pos.above(), false);
 		}
 	}
 
