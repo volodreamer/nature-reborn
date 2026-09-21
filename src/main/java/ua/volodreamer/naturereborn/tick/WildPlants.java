@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.CactusBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.SugarCaneBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import ua.volodreamer.naturereborn.species.BiomeRates;
 
 final class WildPlants {
@@ -43,11 +44,90 @@ final class WildPlants {
 			handleDeadBush(level, pos, rates, random, speed, stats);
 			return true;
 		}
+		if (block == Blocks.SWEET_BERRY_BUSH) {
+			handleSweetBerry(level, pos, state, rates, random, speed, stats);
+			return true;
+		}
 		return false;
 	}
 
 	private interface GroundCheck {
 		boolean test(ServerLevel level, BlockPos ground);
+	}
+
+	private static void handleSweetBerry(ServerLevel level, BlockPos pos, BlockState state, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
+		Block soil = level.getBlockState(pos.below()).getBlock();
+		boolean valid = soil == Blocks.GRASS_BLOCK || soil == Blocks.DIRT || soil == Blocks.PODZOL
+				|| soil == Blocks.COARSE_DIRT || soil == Blocks.ROOTED_DIRT || soil == Blocks.MOSS_BLOCK;
+		if (!valid) {
+			if (chance(random, BASE_DEATH * rates.death() * speed * 4.0)) {
+				level.destroyBlock(pos, false);
+				stats.flowerDeaths++;
+			}
+			return;
+		}
+		int age = state.hasProperty(BlockStateProperties.AGE_3) ? state.getValue(BlockStateProperties.AGE_3) : 3;
+		if (age < 3 && chance(random, BASE_GROW * rates.growth() * speed)) {
+			level.setBlock(pos, state.setValue(BlockStateProperties.AGE_3, age + 1), Block.UPDATE_ALL);
+			stats.flowerSpreads++;
+			return;
+		}
+		if (VillageZones.inVillage(level, pos) || age < 3) {
+			return;
+		}
+		if (!chance(random, BASE_SPREAD * rates.spread() * speed)) {
+			return;
+		}
+		int dist = 2 + random.nextInt(3);
+		Direction dir = Direction.Plane.HORIZONTAL.getRandomDirection(random);
+		BlockPos probe = pos.relative(dir, dist).offset(0, random.nextInt(3) - 1, 0);
+		BlockPos ground = ForestEcology.walkToSoil(level, probe);
+		if (ground == null) {
+			return;
+		}
+		BlockPos air = ground.above();
+		if (VillageZones.inVillage(level, air) || ForestEcology.isProtected(level.getBlockState(ground))) {
+			return;
+		}
+		Block groundBlock = level.getBlockState(ground).getBlock();
+		if (groundBlock != Blocks.GRASS_BLOCK && groundBlock != Blocks.DIRT && groundBlock != Blocks.PODZOL && groundBlock != Blocks.COARSE_DIRT) {
+			return;
+		}
+		if (!level.isEmptyBlock(air) && !ForestEcology.isFoliage(level.getBlockState(air).getBlock())) {
+			return;
+		}
+		if (!Blocks.SWEET_BERRY_BUSH.defaultBlockState().canSurvive(level, air)) {
+			return;
+		}
+		if (berryTooClose(level, air)) {
+			return;
+		}
+		level.setBlock(air, Blocks.SWEET_BERRY_BUSH.defaultBlockState(), Block.UPDATE_ALL);
+		stats.flowerSpreads++;
+	}
+
+	private static boolean berryTooClose(ServerLevel level, BlockPos pos) {
+		for (int dx = -2; dx <= 2; dx++) {
+			for (int dz = -2; dz <= 2; dz++) {
+				if (dx == 0 && dz == 0) {
+					continue;
+				}
+				if (Math.max(Math.abs(dx), Math.abs(dz)) < 2) {
+					continue;
+				}
+				if (level.getBlockState(pos.offset(dx, 0, dz)).getBlock() == Blocks.SWEET_BERRY_BUSH) {
+					return true;
+				}
+			}
+		}
+		for (int dx = -2; dx <= 2; dx++) {
+			for (int dz = -2; dz <= 2; dz++) {
+				if (level.getBlockState(pos.offset(dx, 0, dz)).getBlock() == Blocks.SWEET_BERRY_BUSH) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private static void handleLily(ServerLevel level, BlockPos pos, BiomeRates rates, RandomSource random, double speed, TickStats stats) {
