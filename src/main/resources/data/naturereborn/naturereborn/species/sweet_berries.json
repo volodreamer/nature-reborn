@@ -1,0 +1,12 @@
+{
+  "id": "sweet_berries",
+  "kind": "plant",
+  "blocks": ["minecraft:sweet_berry_bush"],
+  "defaults": { "growth": 0.8, "spread": 0.35, "death": 0.2 },
+  "biomes": {
+    "#minecraft:is_taiga": { "growth": 1.2, "spread": 0.55, "death": 0.12 },
+    "minecraft:grove": { "growth": 0.9, "spread": 0.3, "death": 0.2 },
+    "#minecraft:is_forest": { "growth": 0.45, "spread": 0.15, "death": 0.4 },
+    "#minecraft:is_jungle": { "growth": 0.1, "spread": 0.0, "death": 1.2 }
+  }
+}

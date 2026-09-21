@@ -1,0 +1,15 @@
+{
+  "id": "melon",
+  "kind": "crop",
+  "blocks": [
+    "minecraft:melon_stem",
+    "minecraft:attached_melon_stem",
+    "minecraft:melon"
+  ],
+  "defaults": { "growth": 0.9, "spread": 0.5, "death": 0.0 },
+  "biomes": {
+    "#minecraft:is_jungle": { "growth": 1.25, "spread": 0.8, "death": 0.0 },
+    "minecraft:plains": { "growth": 0.85, "spread": 0.4, "death": 0.0 },
+    "#minecraft:is_forest": { "growth": 0.7, "spread": 0.35, "death": 0.0 }
+  }
+}
