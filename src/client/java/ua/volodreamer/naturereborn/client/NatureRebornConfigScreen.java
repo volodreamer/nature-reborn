@@ -101,6 +101,11 @@ public final class NatureRebornConfigScreen {
 				.setDefaultValue(true)
 				.setSaveConsumer(value -> NatureReborn.config().autoReplantAllSources = value)
 				.build());
+		farm.addEntry(entries.startBooleanToggle(Component.translatable("naturereborn.config.animalBreedingEnabled"), current.animalBreedingEnabled)
+				.setDefaultValue(true)
+				.setTooltip(Component.translatable("naturereborn.config.animalBreedingEnabled.tooltip"))
+				.setSaveConsumer(value -> NatureReborn.config().animalBreedingEnabled = value)
+				.build());
 
 		ConfigCategory trees = builder.getOrCreateCategory(Component.translatable("naturereborn.config.category.trees"));
 		trees.addEntry(entries.startBooleanToggle(Component.translatable("naturereborn.config.treesEnabled"), current.treesEnabled)
