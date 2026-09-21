@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -106,6 +107,9 @@ public final class NatureTicker {
 		if (Weathering.isWeatherable(state)) {
 			Weathering.tick(level, blockPos, state, config);
 			return;
+		}
+		if (config.grassEnabled && (state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.LEAF_LITTER) || ForestEcology.isPlantableSoil(state.getBlock()))) {
+			LeafLitter.tick(level, blockPos, state, level.getRandom(), config.clampedSpeed(), stats);
 		}
 		Species species = SpeciesRegistry.match(state.getBlock());
 		if (species == null) {
