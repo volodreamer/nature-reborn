@@ -57,7 +57,7 @@ public final class NatureRebornConfig {
 	}
 
 	public String versionTag() {
-		return "0.1.0-alpha";
+		return "0.1.0-beta";
 	}
 
 	public double clampedSpeed() {
