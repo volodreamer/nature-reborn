@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+        default: 'v0.1.0-beta'
 
 jobs:
   release:
@@ -24,10 +30,20 @@ jobs:
 
       - run: gradle build --no-daemon
 
+      - name: pick playable jar
+        run: |
+          mkdir -p dist
+          find build/libs -maxdepth 1 -type f -name 'nature-reborn-*.jar' \
+            ! -name '*-sources.jar' ! -name '*dev*.jar' -print -exec cp {} dist/ \;
+          ls -la dist
+
       - name: publish github release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: Nature Reborn ${{ github.event.inputs.tag || github.ref_name }}
+          prerelease: true
           generate_release_notes: true
-          files: |
-            build/libs/nature-reborn-*.jar
+          files: dist/*.jar
           fail_on_unmatched_files: true
