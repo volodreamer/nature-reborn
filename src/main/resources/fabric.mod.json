@@ -12,6 +12,7 @@
     "issues": "https://github.com/volodreamer/nature-reborn/issues"
   },
   "license": "GPL-3.0-or-later",
+  "icon": "assets/naturereborn/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
