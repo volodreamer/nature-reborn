@@ -34,8 +34,6 @@ Dedicated server: Nature Reborn + Fabric API. Cloth is not required on the serve
 ./gradlew build
 ```
 
-Tag `v0.1.0-beta` and push it to publish a GitHub Release with the playable jar.
-
 ## License
 
 [GPL-3.0-or-later](LICENSE).
